@@ -58,62 +58,32 @@ void MainTask::i2cInterrupt(int received)
 
 void MainTask::processMessage(char data)
 {
-	char result;
-
-	switch(_messageState) {
-	case MSG_HEADER:
-		if (data == '$')
-			_messageState = MSG_LENGTH_1;
-		break;
-	case MSG_LENGTH_1:
-		result = asciiToInt(data);
-		if (result < 0)
-			_messageState = MSG_HEADER;
-		else {
-			_messageState = MSG_LENGTH_1;
-			_messageLength = result * 10;
-		}
-		break;
-	case MSG_LENGTH_2:
-		result = asciiToInt(data);
-		if (result < 0)
-			_messageState = MSG_HEADER;
-		else {
-			_messageLength += result;
-			_messageIndex = 0;
-			if (_messageLength > MAX_MESSAGE_LENGHT)
-				_messageState = MSG_HEADER;
-			else
-				_messageState = MSG_BODY;
-		}
-		break;
-	case MSG_BODY:
-		if (_messageIndex < _messageLength) {
-			_message[_messageIndex] = data;
-			_messageIndex++;
-			if (_messageIndex >= _messageLength) {
-				if (data == 0)
-					parseMessage();
-				_messageState = MSG_HEADER;
+	if (_messageIndex < MAX_MESSAGE_LENGHT) {
+		_message[_messageIndex++] = data;
+		if (data == 0) {
+			char tag, value;
+			if (sscanf(_message, "$%d,%d", tag, value) == 2) {
+				switch (tag) {
+				case TAG_PDU_CONTROL:
+					_pduControl = value;
+					setPdu();
+					break;
+				case TAG_RPI_SLEEP_TIME:
+					break;
+				}
 			}
-		} else
-			_messageState = MSG_HEADER;
-		break;
-	}
+			_messageIndex = 0;
+		}
+	} else
+		_messageIndex = 0;
 }
 
-void MainTask::parseMessage()
+void MainTask::setPdu()
 {
-	char tag, value;
-	sscanf(_message, "[%d,%d", tag, value);
-
-	switch (tag) {
-	case TAG_PDU_CONTROL:
-		// TODO: use value to set PDU
-		break;
-	case TAG_RPI_SLEEP_TIME:
-		break;
-	}
+	if (_pduControl & PDU_ROUTER_ON)
+		  SleepyPi.enableExtPower(true);
+	else
+		  SleepyPi.enableExtPower(false);
 }
 
 char MainTask::asciiToInt(unsigned char data)

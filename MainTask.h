@@ -16,28 +16,28 @@ public:
 	void run();
 
 private:
-	enum MessageState {
-		MSG_HEADER,
-		MSG_LENGTH_1,
-		MSG_LENGTH_2,
-		MSG_BODY
-	};
-	enum MessageTag {
-		TAG_PDU_CONTROL,
-		TAG_RPI_SLEEP_TIME,
-	};
 #define RPI_SLEEP_TIME				1
 #define RTC_INTERRUPT_PIN			0 /* (INT0) */
 #define ARDUINO_I2C_SLAVE_ADDRESS	100
 #define MAX_MESSAGE_LENGHT			10
 #define RPI_SHUTDOWN_CURRENT		85
+
+#define PDU_ROUTER_ON				0x0001
+#define PDU_CAM1_ON					0x0002
+#define PDU_CAM2_ON					0x0004
+#define PDU_CAM3_ON					0x0008
+#define PDU_CAM4_ON					0x0010
+
+	enum MessageTag {
+		TAG_PDU_CONTROL,
+		TAG_RPI_SLEEP_TIME,
+	};
 	MainTask() :
 		_rtcInterrupt(false),
-		_messageState(MSG_HEADER),
-		_messageLength(0),
 		_messageIndex(0),
 		_rpiSleepTime(RPI_SLEEP_TIME),
-		_rpiShutdownCurrent(RPI_SHUTDOWN_CURRENT)
+		_rpiShutdownCurrent(RPI_SHUTDOWN_CURRENT),
+		_pduControl(0)
 	{
 	}
 	virtual ~MainTask() {}
@@ -46,15 +46,15 @@ private:
 	static void i2cInterrupt(int received);
 	void processMessage(char data);
 	void parseMessage();
+	void setPdu();
 	char asciiToInt(unsigned char data);
 
 	SleepyPiClass _sleepyPi;
 	bool _rtcInterrupt;
-	MessageState _messageState;
-	unsigned char _messageLength;
-	unsigned char _messageIndex;
-	unsigned char _rpiSleepTime;
-	unsigned short _rpiShutdownCurrent;
+	uint8_t _messageIndex;
+	uint8_t _rpiSleepTime;
+	uint16_t _rpiShutdownCurrent;
+	uint16_t _pduControl;
 	char _message[MAX_MESSAGE_LENGHT];
 };
 
