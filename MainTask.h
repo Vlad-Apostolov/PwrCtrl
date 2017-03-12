@@ -19,7 +19,7 @@ private:
 #define RPI_SLEEP_TIME				1
 #define RTC_INTERRUPT_PIN			0 /* (INT0) */
 #define ARDUINO_I2C_SLAVE_ADDRESS	100
-#define MAX_MESSAGE_LENGHT			10
+#define MESSAGE_LENGHT				7
 #define RPI_SHUTDOWN_CURRENT		85
 
 #define PDU_ROUTER_ON				0x0001
@@ -27,6 +27,7 @@ private:
 #define PDU_CAM2_ON					0x0004
 #define PDU_CAM3_ON					0x0008
 #define PDU_CAM4_ON					0x0010
+#define RPI_ON						0x0020
 
 	enum MessageTag {
 		TAG_PDU_CONTROL,
@@ -43,9 +44,9 @@ private:
 	virtual ~MainTask() {}
 	void initRtc();
 	static void rtcInterrupt();
-	static void i2cInterrupt(int received);
-	void processMessage(char data);
-	void parseMessage();
+	static void i2cTask(int received);
+	void powerDownPi(bool state);
+	void parseMessage(char data);
 	void setPdu();
 	char asciiToInt(unsigned char data);
 
@@ -55,7 +56,7 @@ private:
 	uint8_t _rpiSleepTime;
 	uint16_t _rpiShutdownCurrent;
 	uint16_t _pduControl;
-	char _message[MAX_MESSAGE_LENGHT];
+	char _message[MESSAGE_LENGHT];
 };
 
 #endif /* MAINTASK_H_ */

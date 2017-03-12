@@ -18,13 +18,11 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
-	if (_sleepyPi.rpiCurrent() < _rpiShutdownCurrent) {
-		_pduControl &= ~PDU_ROUTER_ON;
-		_sleepyPi.enablePiPower(false);	// Power down RPi
-	}
-	initRtc();
-
 	for (;;) {
+		while (_sleepyPi.rpiCurrent() >= _rpiShutdownCurrent);	// wait for RPi to shutdown
+		powerDownPi(true);
+		initRtc();
+
 		_sleepyPi.setTimer1(eTB_MINUTE, _rpiSleepTime);
 		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 
@@ -32,12 +30,7 @@ void MainTask::run()
 			_sleepyPi.enablePiPower(true);	// Power up RPi
 			// Start I2C slave
 			Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
-			Wire.onReceive(i2cInterrupt);
-
-			float piCurrent = 0.0;
-			while ((piCurrent = _sleepyPi.rpiCurrent()) >= _rpiShutdownCurrent);	// wait for RPi to shutdown
-			_sleepyPi.enablePiPower(false);	// Power down RPi
-			initRtc();
+			Wire.onReceive(i2cTask);
 		} else {	// WDT interrupt
 			// TODO:
 		}
@@ -46,7 +39,8 @@ void MainTask::run()
 
 void MainTask::initRtc()
 {
-	_sleepyPi.rtcClearInterrupts();
+	// Start I2C master
+	_sleepyPi.rtcInit(true);
     attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
 }
 
@@ -55,19 +49,29 @@ void MainTask::rtcInterrupt()
 	MainTask::instance()._rtcInterrupt = true;
 }
 
-void MainTask::i2cInterrupt(int received)
+void MainTask::i2cTask(int received)
 {
 	while (Wire.available())
-		MainTask::instance().processMessage(Wire.read());
+		MainTask::instance().parseMessage(Wire.read());
 }
 
-void MainTask::processMessage(char data)
+void MainTask::powerDownPi(bool state)
 {
-	if (_messageIndex < MAX_MESSAGE_LENGHT) {
+	if (state) {
+		_pduControl &= ~RPI_ON;
+	} else {
+		_pduControl |= RPI_ON;
+	}
+	setPdu();
+}
+
+void MainTask::parseMessage(char data)
+{
+	if (_messageIndex < MESSAGE_LENGHT) {	// message format "$XX,XX\0"
 		_message[_messageIndex++] = data;
 		if (data == 0) {
 			char tag, value;
-			if (sscanf(_message, "$%d,%d", tag, value) == 2) {
+			if (sscanf(_message, "$%x,%x", tag, value) == 2) {
 				switch (tag) {
 				case TAG_PDU_CONTROL:
 					_pduControl = value;
@@ -86,9 +90,14 @@ void MainTask::processMessage(char data)
 void MainTask::setPdu()
 {
 	if (_pduControl & PDU_ROUTER_ON)
-		  SleepyPi.enableExtPower(true);
+		SleepyPi.enableExtPower(true);
 	else
-		  SleepyPi.enableExtPower(false);
+		SleepyPi.enableExtPower(false);
+
+	if (_pduControl & RPI_ON)
+		_sleepyPi.enablePiPower(true);
+	else
+		_sleepyPi.enablePiPower(false);
 }
 
 char MainTask::asciiToInt(unsigned char data)
