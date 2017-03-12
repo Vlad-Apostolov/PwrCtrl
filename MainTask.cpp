@@ -18,7 +18,12 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
+	if (_sleepyPi.rpiCurrent() < _rpiShutdownCurrent) {
+		_pduControl &= ~PDU_ROUTER_ON;
+		_sleepyPi.enablePiPower(false);	// Power down RPi
+	}
 	initRtc();
+
 	for (;;) {
 		_sleepyPi.setTimer1(eTB_MINUTE, _rpiSleepTime);
 		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
