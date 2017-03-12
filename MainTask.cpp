@@ -78,6 +78,7 @@ void MainTask::parseMessage(char data)
 					setPdu();
 					break;
 				case TAG_RPI_SLEEP_TIME:
+					_rpiSleepTime = value;
 					break;
 				}
 			}
