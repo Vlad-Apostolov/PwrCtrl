@@ -10,6 +10,8 @@
 
 #include <SleepyPi2.h>
 
+#include "SolarCharger.h"
+
 class MainTask {
 public:
 	static MainTask& instance();
@@ -29,6 +31,9 @@ private:
 #define PDU_CAM4_ON					0x0010
 #define RPI_ON						0x0020
 
+#define SOLAR_CHARGER_RX_PIN		10
+#define SOLAR_CHARGER_TX_PIN		9
+
 	enum MessageTag {
 		TAG_PDU_CONTROL,
 		TAG_RPI_SLEEP_TIME,
@@ -38,7 +43,8 @@ private:
 		_messageIndex(0),
 		_rpiSleepTime(RPI_SLEEP_TIME),
 		_rpiShutdownCurrent(RPI_SHUTDOWN_CURRENT),
-		_pduControl(0)
+		_pduControl(0),
+		_solarCharger(SOLAR_CHARGER_RX_PIN, SOLAR_CHARGER_TX_PIN)
 	{
 	}
 	virtual ~MainTask() {}
@@ -56,6 +62,7 @@ private:
 	uint8_t _rpiSleepTime;
 	uint16_t _rpiShutdownCurrent;
 	uint16_t _pduControl;
+	SolarCharger _solarCharger;
 	char _message[MESSAGE_LENGHT];
 };
 

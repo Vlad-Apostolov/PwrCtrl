@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <LowPower.h>
 #include <SleepyPi2.h>
+#include <SoftwareSerial.h>
 
 void setup() { }
 
