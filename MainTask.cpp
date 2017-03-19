@@ -20,30 +20,35 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
+	while (_sleepyPi.rpiCurrent() >= _rpiShutdownCurrent);	// wait for RPi to shutdown
+	powerDownPi(true);
+	initRtc();
 	for (;;) {
-		while (_sleepyPi.rpiCurrent() >= _rpiShutdownCurrent);	// wait for RPi to shutdown
-		powerDownPi(true);
-		initRtc();
-
-		_sleepyPi.setTimer1(eTB_MINUTE, _rpiSleepTime);
-		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
-
 		if (_rtcInterrupt) {
-			_sleepyPi.enablePiPower(true);	// Power up RPi
-			// Start I2C slave
-			Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
-			Wire.onReceive(i2cTask);
-		} else {	// WDT interrupt
-			// TODO:
+			initRtc();
+			_sleepTime++;
+			if (_sleepTime%_spiSleepTime == 0)
+				readSolarCharger();
+			if (_sleepTime%_rpiSleepTime == 0) {
+				powerDownPi(false);
+				// Start I2C slave
+				Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
+				Wire.onReceive(i2cReceiver);
+				Wire.onRequest(i2cTransmitter);
+				while (_sleepyPi.rpiCurrent() >= _rpiShutdownCurrent);	// wait for RPi to shutdown
+				powerDownPi(true);
+			}
 		}
+		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 	}
 }
 
 void MainTask::initRtc()
 {
+    attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
 	// Start I2C master
 	_sleepyPi.rtcInit(true);
-    attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
+	_sleepyPi.setAlarm(60);
 }
 
 void MainTask::rtcInterrupt()
@@ -51,10 +56,21 @@ void MainTask::rtcInterrupt()
 	MainTask::instance()._rtcInterrupt = true;
 }
 
-void MainTask::i2cTask(int received)
+void MainTask::i2cReceiver(int received)
 {
 	while (Wire.available())
 		MainTask::instance().parseMessage(Wire.read());
+}
+
+void MainTask::i2cTransmitter()
+{
+	SolarChargerData* solarChargerData = MainTask::instance().nextSolarChargerDataRead();
+	if (solarChargerData == NULL) {
+		SolarChargerData dummy;
+		solarChargerData = &dummy;
+		memset(solarChargerData, 0, sizeof(SolarChargerData));
+	}
+	Wire.write((uint8_t*)solarChargerData, sizeof(SolarChargerData));
 }
 
 void MainTask::powerDownPi(bool state)
@@ -81,6 +97,9 @@ void MainTask::parseMessage(char data)
 					break;
 				case TAG_RPI_SLEEP_TIME:
 					_rpiSleepTime = value;
+					break;
+				case TAG_SPI_SLEEP_TIME:
+					_spiSleepTime = value;
 					break;
 				}
 			}
@@ -109,5 +128,38 @@ char MainTask::asciiToInt(unsigned char data)
 		return -1;
 	else
 		return (data - '0');
+}
+
+void MainTask::readSolarCharger()
+{
+	SolarChargerData& solarChargerData = nextSolarChargerDataWrite();
+	solarChargerData.chargerVoltage = _solarCharger.getChargerVoltage();
+	solarChargerData.chargerCurrent = _solarCharger.getChargerCurrent();
+	solarChargerData.chargerPower = _solarCharger.getPowerYieldToday();
+	solarChargerData.time = _sleepyPi.readTime().unixtime();
+}
+
+MainTask::SolarChargerData& MainTask::nextSolarChargerDataWrite()
+{
+	uint8_t current = _solarChargerDataWrite++;
+	if (_solarChargerDataWrite >= MAX_SOLAR_CHARGER_DATA)
+		_solarChargerDataWrite = 0;
+	if (_solarChargerDataWrite == _solarChargerDataRead) {
+		// Overflow! Drop the oldest data.
+		_solarChargerDataRead++;
+		if (_solarChargerDataRead >= MAX_SOLAR_CHARGER_DATA)
+			_solarChargerDataRead = 0;
+	}
+	return _solarChargerData[current];
+}
+
+MainTask::SolarChargerData* MainTask::nextSolarChargerDataRead()
+{
+	if (_solarChargerDataRead == _solarChargerDataWrite)
+		return NULL;
+	uint8_t current = _solarChargerDataRead++;
+	if (_solarChargerDataRead >= MAX_SOLAR_CHARGER_DATA)
+		_solarChargerDataRead = 0;
+	return &_solarChargerData[current];
 }
 
