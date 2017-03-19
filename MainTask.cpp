@@ -11,8 +11,10 @@
 MainTask& MainTask::instance()
 {
 	static MainTask *inst = NULL;
-	if (!inst)
+	if (!inst) {
+		Serial.begin(19200);
 		inst = new MainTask();
+	}
 	return *inst;
 }
 
