@@ -13,7 +13,7 @@
 class SolarCharger {
 public:
 #define INVALID_DATA			0xFF
-#define INVALID_RESULT			0xFFFF
+#define INVALID_RESULT			0xFFFFFFFF
 	SolarCharger(uint8_t rxPin, uint8_t txPin) :
 			_comPort(rxPin, txPin),
 			_commandState(CMD_HEADER),
@@ -21,19 +21,30 @@ public:
 			_firstNibble(INVALID_DATA),
 			_powerYieldToday(INVALID_RESULT),
 			_chargerCurrent(INVALID_RESULT),
-			_chargerVoltage(INVALID_RESULT)
+			_chargerVoltage(INVALID_RESULT),
+			_chargerTemperature(INVALID_RESULT),
+			_loadCurrent(INVALID_RESULT),
+			_loadVoltage(INVALID_RESULT),
+			_panelCurrent(INVALID_RESULT),
+			_panelVoltage(INVALID_RESULT),
+			_panelPower(INVALID_RESULT)
 	{
 		_comPort.begin(19200);
 	}
 	uint16_t getChargerVoltage();
 	uint16_t getChargerCurrent();
 	uint16_t getPowerYieldToday();
+	int16_t getChargerTemperature();
+	uint16_t getLoadVoltage();
+	uint16_t getLoadCurrent();
+	uint16_t getPanelVoltage();
+	uint16_t getPanelCurrent();
+	uint32_t getPanelPower();
 
 	virtual ~SolarCharger() {}
 
 private:
 #define MAX_COMMAND_SIZE 		100
-#define GET_SET_COMMAND_SIZE 	7
 	enum CommandState
 	{
 		CMD_HEADER,
@@ -80,6 +91,15 @@ private:
 		SPR_MAXIMUM_VOLTAGE = 0xB8ED
 	};
 
+	enum LoadOutputRegister {
+		LOR_CURRENT = 0xADED,
+		LOR_VOLTAGE = 0xACED,
+		LOR_CONTROL = 0xABED,
+		LOR_STATE = 0xA8ED,
+		LOR_SWITCH_HIGH_LEVEL = 0x9DED,
+		LOR = 0x9CED
+	};
+
 	SolarCharger();
 	bool processReply();
 	bool processSerialData(uint8_t data);
@@ -96,6 +116,12 @@ private:
 	uint16_t _powerYieldToday;
 	uint16_t _chargerCurrent;
 	uint16_t _chargerVoltage;
+	int16_t _chargerTemperature;
+	uint16_t _loadCurrent;
+	uint16_t _loadVoltage;
+	uint16_t _panelCurrent;
+	uint16_t _panelVoltage;
+	uint32_t _panelPower;
 };
 
 #endif /* SOLARCHARGER_H_ */

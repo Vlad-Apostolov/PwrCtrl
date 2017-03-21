@@ -38,6 +38,66 @@ uint16_t SolarCharger::getPowerYieldToday()
 	return INVALID_RESULT;
 }
 
+int16_t SolarCharger::getChargerTemperature()
+{
+	_comPort.write(":7DBED0086\n");
+	_chargerTemperature = INVALID_RESULT;
+	if (processReply())
+		return _chargerTemperature;
+
+	return INVALID_RESULT;
+}
+
+uint16_t SolarCharger::getLoadVoltage()
+{
+	_comPort.write(":7ACED00B5\n");
+	_loadVoltage = INVALID_RESULT;
+	if (processReply())
+		return _loadVoltage;
+
+	return INVALID_RESULT;
+}
+
+uint16_t SolarCharger::getLoadCurrent()
+{
+	_comPort.write(":7ADED00B4\n");
+	_loadCurrent = INVALID_RESULT;
+	if (processReply())
+		return _loadCurrent;
+
+	return INVALID_RESULT;
+}
+
+uint16_t SolarCharger::getPanelVoltage()
+{
+	_comPort.write(":7ACED00B5\n");
+	_panelVoltage = INVALID_RESULT;
+	if (processReply())
+		return _panelVoltage;
+
+	return INVALID_RESULT;
+}
+
+uint16_t SolarCharger::getPanelCurrent()
+{
+	_comPort.write(":7ADED00B4\n");
+	_panelCurrent = INVALID_RESULT;
+	if (processReply())
+		return _panelCurrent;
+
+	return INVALID_RESULT;
+}
+
+uint32_t SolarCharger::getPanelPower()
+{
+	_comPort.write(":7ADED00B4\n");
+	_panelPower = INVALID_RESULT;
+	if (processReply())
+		return _panelPower;
+
+	return INVALID_RESULT;
+}
+
 bool SolarCharger::processReply()
 {
 #define READ_TIMEOUT	50
@@ -115,17 +175,17 @@ bool SolarCharger::parseCommand()
 	switch (commandId) {
 	case CID_GET:
 	{
-		if (_commandSize != GET_SET_COMMAND_SIZE)
-			break;
 		uint8_t flags = _command[3];
 		if (flags != 0) {
 			parseGetSetFlags(flags);
 			break;
 		}
 		uint16_t registerId = *((uint16_t*)&_command[1]);
-		uint16_t registerData = _command[5];
-		registerData <<= 8;
-		registerData |= _command[6];
+		uint32_t registerData = 0;
+		for (uint8_t i = _commandSize - 2; i >= 4; i--) {
+			registerData <<= 8;
+			registerData |= _command[i];
+		}
 		switch (registerId) {
 		case CR_YIELD_TODAY:
 			_powerYieldToday = registerData;
@@ -137,6 +197,30 @@ bool SolarCharger::parseCommand()
 			break;
 		case CR_VOLTAGE:
 			_chargerVoltage = registerData;
+			result = true;
+			break;
+		case CR_INTERNAL_TEMPERATURE:
+			_chargerTemperature = registerData;
+			result = true;
+			break;
+		case LOR_CURRENT:
+			_loadCurrent = registerData;
+			result = true;
+			break;
+		case LOR_VOLTAGE:
+			_loadVoltage = registerData;
+			result = true;
+			break;
+		case SPR_CURRENT:
+			_panelCurrent = registerData;
+			result = true;
+			break;
+		case SPR_VOLTAGE:
+			_panelVoltage = registerData;
+			result = true;
+			break;
+		case SPR_POWER:
+			_panelPower = registerData;
 			result = true;
 			break;
 		default:

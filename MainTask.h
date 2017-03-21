@@ -19,8 +19,8 @@ public:
 	void run();
 
 private:
-#define RPI_SLEEP_TIME				15
-#define SPI_SLEEP_TIME				1
+#define RPI_SLEEP_TIME				30
+#define SPI_SLEEP_TIME				5
 #define RTC_INTERRUPT_PIN			0 /* (INT0) */
 #define ARDUINO_I2C_SLAVE_ADDRESS	55
 #define MESSAGE_LENGHT				7
@@ -47,7 +47,13 @@ private:
 		uint32_t time;
 		uint16_t chargerVoltage;
 		uint16_t chargerCurrent;
-		uint16_t chargerPower;
+		uint16_t chargerPowerToday;
+		int16_t chargerTemperature;
+		uint16_t loadVoltage;
+		uint16_t loadCurrent;
+		uint16_t panelVoltage;
+		uint16_t panelCurrent;
+		uint32_t panelPower;
 	};
 	MainTask() :
 		_rtcInterrupt(false),

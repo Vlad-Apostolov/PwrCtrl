@@ -135,7 +135,13 @@ void MainTask::readSolarCharger()
 	SolarChargerData& solarChargerData = nextSolarChargerDataWrite();
 	solarChargerData.chargerVoltage = _solarCharger.getChargerVoltage();
 	solarChargerData.chargerCurrent = _solarCharger.getChargerCurrent();
-	solarChargerData.chargerPower = _solarCharger.getPowerYieldToday();
+	solarChargerData.chargerPowerToday = _solarCharger.getPowerYieldToday();
+	solarChargerData.chargerTemperature = _solarCharger.getChargerTemperature();
+	solarChargerData.loadVoltage = _solarCharger.getLoadVoltage();
+	solarChargerData.loadCurrent = _solarCharger.getLoadCurrent();
+	solarChargerData.panelVoltage = _solarCharger.getPanelVoltage();
+	solarChargerData.panelCurrent = _solarCharger.getPanelCurrent();
+	solarChargerData.panelPower = _solarCharger.getPanelPower();
 	solarChargerData.time = _sleepyPi.readTime().unixtime();
 }
 
