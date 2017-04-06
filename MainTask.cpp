@@ -136,13 +136,13 @@ void MainTask::readSolarCharger()
 	solarChargerData.chargerVoltage = _solarCharger.getChargerVoltage();
 	solarChargerData.chargerCurrent = _solarCharger.getChargerCurrent();
 	solarChargerData.chargerPowerToday = _solarCharger.getPowerYieldToday();
-	solarChargerData.chargerTemperature = _solarCharger.getChargerTemperature();
 	solarChargerData.loadVoltage = _solarCharger.getLoadVoltage();
 	solarChargerData.loadCurrent = _solarCharger.getLoadCurrent();
 	solarChargerData.panelVoltage = _solarCharger.getPanelVoltage();
 	solarChargerData.panelCurrent = _solarCharger.getPanelCurrent();
 	solarChargerData.panelPower = _solarCharger.getPanelPower();
 	solarChargerData.time = _sleepyPi.readTime().unixtime();
+	solarChargerData.cpuTemperature = getCpuTemperature();
 }
 
 MainTask::SolarChargerData& MainTask::nextSolarChargerDataWrite()
@@ -167,5 +167,37 @@ MainTask::SolarChargerData* MainTask::nextSolarChargerDataRead()
 	if (_solarChargerDataRead >= MAX_SOLAR_CHARGER_DATA)
 		_solarChargerDataRead = 0;
 	return &_solarChargerData[current];
+}
+
+// code tacken from http://playground.arduino.cc/Main/InternalTemperatureSensor
+int8_t MainTask::getCpuTemperature()
+{
+	unsigned int wADC;
+	double t;
+
+	// The internal temperature has to be used
+	// with the internal reference of 1.1V.
+	// Channel 8 can not be selected with
+	// the analogRead function yet.
+
+	// Set the internal reference and mux.
+	ADMUX = (_BV(REFS1) | _BV(REFS0) | _BV(MUX3));
+	ADCSRA |= _BV(ADEN);  // enable the ADC
+
+	delay(20);            // wait for voltages to become stable.
+
+	ADCSRA |= _BV(ADSC);  // Start the ADC
+
+	// Detect end-of-conversion
+	while (bit_is_set(ADCSRA,ADSC));
+
+	// Reading register "ADCW" takes care of how to read ADCL and ADCH.
+	wADC = ADCW;
+
+	// The offset of 324.31 could be wrong. It is just an indication.
+	t = (wADC - 324.31 ) / 1.22;
+
+	// The returned temperature is in degrees Celsius.
+	return round(t);
 }
 
