@@ -13,6 +13,13 @@ MainTask& MainTask::instance()
 	static MainTask *inst = NULL;
 	if (!inst) {
 		Serial.begin(19200);
+		pinMode(RELAY1_PIN, OUTPUT);
+		pinMode(RELAY2_PIN, OUTPUT);
+		pinMode(RELAY3_PIN, OUTPUT);
+		pinMode(RELAY4_PIN, OUTPUT);
+		pinMode(RELAY5_PIN, OUTPUT);
+		pinMode(RELAY6_PIN, OUTPUT);
+		pinMode(RELAY7_PIN, OUTPUT);
 		inst = new MainTask();
 	}
 	return *inst;
@@ -76,9 +83,9 @@ void MainTask::i2cTransmitter()
 void MainTask::powerDownPi(bool state)
 {
 	if (state) {
-		_pduControl &= ~RPI_ON;
+		_pduControl &= ~PDU_RPI_ON;
 	} else {
-		_pduControl |= RPI_ON;
+		_pduControl |= PDU_RPI_ON;
 	}
 	setPdu();
 }
@@ -111,12 +118,39 @@ void MainTask::parseMessage(char data)
 
 void MainTask::setPdu()
 {
+	if (_pduControl & PDU_RELAY1_ON)
+		digitalWrite(RELAY1_PIN, LOW);
+	else
+		digitalWrite(RELAY1_PIN, HIGH);
+	if (_pduControl & PDU_RELAY2_ON)
+		digitalWrite(RELAY2_PIN, LOW);
+	else
+		digitalWrite(RELAY2_PIN, HIGH);
+	if (_pduControl & PDU_RELAY3_ON)
+		digitalWrite(RELAY3_PIN, LOW);
+	else
+		digitalWrite(RELAY3_PIN, HIGH);
+	if (_pduControl & PDU_RELAY4_ON)
+		digitalWrite(RELAY4_PIN, LOW);
+	else
+		digitalWrite(RELAY4_PIN, HIGH);
+	if (_pduControl & PDU_RELAY5_ON)
+		digitalWrite(RELAY5_PIN, LOW);
+	else
+		digitalWrite(RELAY5_PIN, HIGH);
+	if (_pduControl & PDU_RELAY6_ON)
+		digitalWrite(RELAY6_PIN, LOW);
+	else
+		digitalWrite(RELAY6_PIN, HIGH);
+	if (_pduControl & PDU_RELAY7_ON)
+		digitalWrite(RELAY7_PIN, LOW);
+	else
+		digitalWrite(RELAY7_PIN, HIGH);
 	if (_pduControl & PDU_ROUTER_ON)
 		SleepyPi.enableExtPower(true);
 	else
 		SleepyPi.enableExtPower(false);
-
-	if (_pduControl & RPI_ON)
+	if (_pduControl & PDU_RPI_ON)
 		_sleepyPi.enablePiPower(true);
 	else
 		_sleepyPi.enablePiPower(false);
