@@ -24,7 +24,7 @@ private:
 #define RTC_INTERRUPT_PIN			0 /* (INT0) */
 #define ARDUINO_I2C_SLAVE_ADDRESS	55
 #define MESSAGE_LENGHT				7
-#define RPI_SHUTDOWN_CURRENT		85
+#define RPI_SHUTDOWN_CURRENT		150
 
 #define PDU_RELAY1_ON				0x0001
 #define PDU_RELAY2_ON				0x0002

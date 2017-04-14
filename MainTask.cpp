@@ -13,6 +13,7 @@ MainTask& MainTask::instance()
 	static MainTask *inst = NULL;
 	if (!inst) {
 		Serial.begin(19200);
+		Serial.println("MainTask started");
 		pinMode(RELAY1_PIN, OUTPUT);
 		pinMode(RELAY2_PIN, OUTPUT);
 		pinMode(RELAY3_PIN, OUTPUT);
@@ -27,35 +28,43 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
-	while (_sleepyPi.rpiCurrent() >= _rpiShutdownCurrent);	// wait for RPi to shutdown
 	powerDownPi(true);
 	initRtc();
 	for (;;) {
 		if (_rtcInterrupt) {
-			initRtc();
+		    _sleepyPi.ackTimer1();
+			_rtcInterrupt = false;
+			Serial.println("RTC interrupt");
 			_sleepTime++;
-			if (_sleepTime%_spiSleepTime == 0)
+			if (_sleepTime%_spiSleepTime == 0) {
+				Serial.println("Reading solar charger");
 				readSolarCharger();
+			}
 			if (_sleepTime%_rpiSleepTime == 0) {
 				powerDownPi(false);
 				// Start I2C slave
 				Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
 				Wire.onReceive(i2cReceiver);
 				Wire.onRequest(i2cTransmitter);
-				while (_sleepyPi.rpiCurrent() >= _rpiShutdownCurrent);	// wait for RPi to shutdown
 				powerDownPi(true);
 			}
 		}
+		Serial.println("Sleeping for 8 seconds...");
+		Serial.flush();
 		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 	}
 }
 
 void MainTask::initRtc()
 {
-    attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
 	// Start I2C master
-	_sleepyPi.rtcInit(true);
-	_sleepyPi.setAlarm(60);
+	if (!_sleepyPi.rtcInit(true)) {
+		Serial.println("rtcInit() failed!");
+		return;
+	}
+	Serial.println("Set RTC alarm in one minute");
+    attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
+    _sleepyPi.setTimer1(eTB_MINUTE, 1);
 }
 
 void MainTask::rtcInterrupt()
@@ -82,9 +91,23 @@ void MainTask::i2cTransmitter()
 
 void MainTask::powerDownPi(bool state)
 {
+	uint16_t current;
+
 	if (state) {
+		Serial.println("Waiting for RPi to shutdown...");
+		Serial.println(_rpiShutdownCurrent);
+		do {
+			current = _sleepyPi.rpiCurrent();
+			Serial.print("RPi current: ");
+			Serial.print(current);
+			Serial.println("mA");
+			delay(5000);
+		} while (current >= _rpiShutdownCurrent);
+
+		Serial.println("Power down RPi");
 		_pduControl &= ~PDU_RPI_ON;
 	} else {
+		Serial.println("Power up RPi");
 		_pduControl |= PDU_RPI_ON;
 	}
 	setPdu();
