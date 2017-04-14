@@ -10,6 +10,7 @@
 
 uint16_t SolarCharger::getChargerVoltage()
 {
+	//Serial.println(__FUNCTION__);
 	_comPort.write(":7D5ED008C\n");
 	_chargerVoltage = INVALID_RESULT;
 	if (processReply())
@@ -20,6 +21,7 @@ uint16_t SolarCharger::getChargerVoltage()
 
 uint16_t SolarCharger::getChargerCurrent()
 {
+	//Serial.println(__FUNCTION__);
 	_comPort.write(":7D7ED008A\n");
 	_chargerCurrent = INVALID_RESULT;
 	if (processReply())
@@ -30,6 +32,7 @@ uint16_t SolarCharger::getChargerCurrent()
 
 uint16_t SolarCharger::getPowerYieldToday()
 {
+	//Serial.println(__FUNCTION__);
 	_comPort.write(":7D3ED008E\n");
 	_powerYieldToday = INVALID_RESULT;
 	if (processReply())
@@ -40,6 +43,7 @@ uint16_t SolarCharger::getPowerYieldToday()
 
 int16_t SolarCharger::getChargerTemperature()
 {
+	//Serial.println(__FUNCTION__);
 	_comPort.write(":7DBED0086\n");
 	_chargerTemperature = INVALID_RESULT;
 	if (processReply())
@@ -50,6 +54,7 @@ int16_t SolarCharger::getChargerTemperature()
 
 uint16_t SolarCharger::getLoadVoltage()
 {
+	//Serial.println(__FUNCTION__);
 	_comPort.write(":7ACED00B5\n");
 	_loadVoltage = INVALID_RESULT;
 	if (processReply())
@@ -60,6 +65,7 @@ uint16_t SolarCharger::getLoadVoltage()
 
 uint16_t SolarCharger::getLoadCurrent()
 {
+	//Serial.println(__FUNCTION__);
 	_comPort.write(":7ADED00B4\n");
 	_loadCurrent = INVALID_RESULT;
 	if (processReply())
@@ -70,7 +76,8 @@ uint16_t SolarCharger::getLoadCurrent()
 
 uint16_t SolarCharger::getPanelVoltage()
 {
-	_comPort.write(":7ACED00B5\n");
+	//Serial.println(__FUNCTION__);
+	_comPort.write(":7BBED00A6\n");
 	_panelVoltage = INVALID_RESULT;
 	if (processReply())
 		return _panelVoltage;
@@ -80,7 +87,8 @@ uint16_t SolarCharger::getPanelVoltage()
 
 uint16_t SolarCharger::getPanelCurrent()
 {
-	_comPort.write(":7ADED00B4\n");
+	//Serial.println(__FUNCTION__);
+	_comPort.write(":7BDED00A4\n");
 	_panelCurrent = INVALID_RESULT;
 	if (processReply())
 		return _panelCurrent;
@@ -90,6 +98,7 @@ uint16_t SolarCharger::getPanelCurrent()
 
 uint32_t SolarCharger::getPanelPower()
 {
+	//Serial.println(__FUNCTION__);
 	_comPort.write(":7ADED00B4\n");
 	_panelPower = INVALID_RESULT;
 	if (processReply())
@@ -102,17 +111,21 @@ bool SolarCharger::processReply()
 {
 #define READ_TIMEOUT	50
 	bool result = false;
+	int data = -1;
 	_comPort.listen();
 	_comPort.flush();
 	unsigned long startMillis = millis();
 	while (!result && ((millis() - startMillis) < READ_TIMEOUT)) {
 		while (_comPort.available()) {
-			int data = _comPort.read();
+			data = _comPort.read();
 			if (data < 0)
 				break;
 			result = processSerialData(data);
 		}
 	}
+	Serial.flush();
+	if (!result)
+		Serial.println("Failed...");
 
 	return result;
 }
@@ -157,6 +170,7 @@ bool SolarCharger::processSerialData(uint8_t data)
 				break;
 			}
 			_command[_commandSize++] = (_firstNibble<<4) | nibble;
+			_firstNibble = INVALID_DATA;
 		} else
 			_commandState = CMD_HEADER;
 		break;
@@ -180,7 +194,9 @@ bool SolarCharger::parseCommand()
 			parseGetSetFlags(flags);
 			break;
 		}
-		uint16_t registerId = *((uint16_t*)&_command[1]);
+		uint16_t registerId = _command[1];
+		registerId <<= 8;
+		registerId |= _command[2];
 		uint32_t registerData = 0;
 		for (uint8_t i = _commandSize - 2; i >= 4; i--) {
 			registerData <<= 8;
@@ -265,9 +281,9 @@ bool SolarCharger::checkSumPassed()
 
 uint8_t SolarCharger::hexToBin(uint8_t data)
 {
-	if (data >= '0' && data >= '9')
+	if (data >= '0' && data <= '9')
 		return (data - '0');
-	if (data >= 'A' && data >= 'F')
+	if (data >= 'A' && data <= 'F')
 		return (data - ('A' - 10));
 	return INVALID_DATA;
 }

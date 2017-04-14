@@ -13,7 +13,7 @@
 class SolarCharger {
 public:
 #define INVALID_DATA			0xFF
-#define INVALID_RESULT			0xFFFFFFFF
+#define INVALID_RESULT			0xFFFF
 	SolarCharger(uint8_t rxPin, uint8_t txPin) :
 			_comPort(rxPin, txPin),
 			_commandState(CMD_HEADER),
@@ -53,12 +53,12 @@ private:
 	};
 
 	enum CommandId {
-		CID_DONE = '0',
-		CID_UNKNOWN = '3',
-		CID_ERROR = '4',
-		CID_PING = '5',
-		CID_GET = '7',
-		CID_SET = '8'
+		CID_DONE = 0,
+		CID_UNKNOWN = 3,
+		CID_ERROR = 4,
+		CID_PING = 5,
+		CID_GET = 7,
+		CID_SET = 8
 	};
 	enum GetSetFlags {
 		GSF_UNKNOWN_ID = 0x01,

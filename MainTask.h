@@ -25,6 +25,7 @@ private:
 #define ARDUINO_I2C_SLAVE_ADDRESS	55
 #define MESSAGE_LENGHT				7
 #define RPI_SHUTDOWN_CURRENT		150
+#define RPI_POWER_UP_CURRENT		200
 
 #define PDU_RELAY1_ON				0x0001
 #define PDU_RELAY2_ON				0x0002
@@ -71,7 +72,7 @@ private:
 		_messageIndex(0),
 		_rpiSleepTime(RPI_SLEEP_TIME),
 		_spiSleepTime(SPI_SLEEP_TIME),
-		_sleepTime(0),
+		_uptimeInMinutes(0),
 		_rpiShutdownCurrent(RPI_SHUTDOWN_CURRENT),
 		_pduControl(0),
 		_solarChargerDataRead(0),
@@ -98,14 +99,14 @@ private:
 	uint8_t _messageIndex;
 	uint8_t _rpiSleepTime;
 	uint8_t _spiSleepTime;
-	uint8_t _sleepTime;
+	uint8_t _uptimeInMinutes;
 	uint16_t _rpiShutdownCurrent;
 	uint16_t _pduControl;
+	uint8_t _solarChargerDataRead;
+	uint8_t _solarChargerDataWrite;
 	SolarCharger _solarCharger;
 	char _message[MESSAGE_LENGHT];
 	SolarChargerData _solarChargerData[MAX_SOLAR_CHARGER_DATA];
-	uint8_t _solarChargerDataRead;
-	uint8_t _solarChargerDataWrite;
 };
 
 #endif /* MAINTASK_H_ */
