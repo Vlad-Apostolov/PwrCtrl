@@ -19,11 +19,13 @@ public:
 	void run();
 
 private:
-#define RPI_SLEEP_TIME				30
-#define SPI_SLEEP_TIME				5
+//#define RPI_SLEEP_TIME				30
+//#define SPI_SLEEP_TIME				5
+#define RPI_SLEEP_TIME				1
+#define SPI_SLEEP_TIME				1
 #define RTC_INTERRUPT_PIN			0 /* (INT0) */
 #define ARDUINO_I2C_SLAVE_ADDRESS	55
-#define MESSAGE_LENGHT				7
+#define MESSAGE_LENGHT				9
 #define RPI_SHUTDOWN_CURRENT		150
 #define RPI_POWER_UP_CURRENT		200
 
@@ -59,6 +61,7 @@ private:
 	};
 	struct SolarChargerData {
 		uint32_t time;
+		uint32_t panelPower;
 		uint16_t chargerVoltage;
 		uint16_t chargerCurrent;
 		uint16_t chargerPowerToday;
@@ -66,8 +69,7 @@ private:
 		uint16_t loadCurrent;
 		uint16_t panelVoltage;
 		uint16_t panelCurrent;
-		uint32_t panelPower;
-		int8_t cpuTemperature;
+		int16_t cpuTemperature;
 	};
 	MainTask() :
 		_rtcInterrupt(false),

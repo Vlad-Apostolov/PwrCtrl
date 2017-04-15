@@ -35,7 +35,7 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
-	powerDownPi(true);
+	//powerDownPi(true);
 	initRtc();
 	for (;;) {
 		if (_rtcInterrupt) {
@@ -78,7 +78,8 @@ void MainTask::run()
 			}
 		}
 		Serial.flush();
-		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+		//_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+		_sleepyPi.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
 	}
 }
 
@@ -92,7 +93,8 @@ void MainTask::initRtc()
 	}
 	Serial.println("Set RTC alarm in one minute");
     attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
-    _sleepyPi.setTimer1(eTB_MINUTE, _rtcPeriodInMunutes);
+    //_sleepyPi.setTimer1(eTB_MINUTE, _rtcPeriodInMunutes);
+    _sleepyPi.setTimer1(eTB_SECOND, _rtcPeriodInMunutes);
     delay(1000);
     _sleepyPi.ackTimer1();
 	_rtcInterrupt = false;
@@ -105,13 +107,17 @@ void MainTask::rtcInterrupt()
 
 void MainTask::i2cReceiver(int received)
 {
+	Serial.print("i2cReceiver ");
+	Serial.println(received);
 	while (Wire.available())
 		MainTask::instance().parseMessage(Wire.read());
 }
 
 void MainTask::i2cTransmitter()
 {
+	Serial.print("i2cTransmitter ");
 	SolarChargerData* solarChargerData = MainTask::instance().nextSolarChargerDataRead();
+	Serial.println(sizeof(SolarChargerData));
 	if (solarChargerData == NULL) {
 		SolarChargerData dummy;
 		solarChargerData = &dummy;
@@ -153,14 +159,14 @@ void MainTask::powerDownPi(bool state)
 			Serial.print(current);
 			Serial.println("mA");
 			Serial.flush();
-			_sleepyPi.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+			delay(1000);
 		} while (current < RPI_POWER_UP_CURRENT);
 	}
 }
 
 void MainTask::parseMessage(char data)
 {
-	if (_messageIndex < MESSAGE_LENGHT) {	// message format "$XX,XX\0"
+	if (_messageIndex < MESSAGE_LENGHT) {	// message format "$XX,XXXX\0"
 		_message[_messageIndex++] = data;
 		if (data == 0) {
 			uint16_t tag, value;
@@ -171,10 +177,14 @@ void MainTask::parseMessage(char data)
 					setPdu();
 					break;
 				case TAG_RPI_SLEEP_TIME:
-					_rpiSleepTime = value;
+					Serial.print("TAG_RPI_SLEEP_TIME ");
+					Serial.println(value);
+					_rpiSleepTime = (uint8_t)value;
 					break;
 				case TAG_SPI_SLEEP_TIME:
-					_spiSleepTime = value;
+					Serial.print("TAG_SPI_SLEEP_TIME ");
+					Serial.println(value);
+					_spiSleepTime = (uint8_t)value;
 					break;
 				}
 			}
@@ -186,42 +196,69 @@ void MainTask::parseMessage(char data)
 
 void MainTask::setPdu()
 {
-	if (_pduControl & PDU_RELAY1_ON)
+	if (_pduControl & PDU_RELAY1_ON) {
 		digitalWrite(RELAY1_PIN, LOW);
-	else
+		Serial.println("RELAY1 ON");
+	} else {
 		digitalWrite(RELAY1_PIN, HIGH);
-	if (_pduControl & PDU_RELAY2_ON)
+		Serial.println("RELAY1 OFF");
+	}
+	if (_pduControl & PDU_RELAY2_ON) {
 		digitalWrite(RELAY2_PIN, LOW);
-	else
+		Serial.println("RELAY2 ON");
+	} else {
 		digitalWrite(RELAY2_PIN, HIGH);
-	if (_pduControl & PDU_RELAY3_ON)
+		Serial.println("RELAY2 OFF");
+	}
+	if (_pduControl & PDU_RELAY3_ON) {
 		digitalWrite(RELAY3_PIN, LOW);
-	else
+		Serial.println("RELAY3 ON");
+	} else {
 		digitalWrite(RELAY3_PIN, HIGH);
-	if (_pduControl & PDU_RELAY4_ON)
+		Serial.println("RELAY4 OFF");
+	}
+	if (_pduControl & PDU_RELAY4_ON) {
 		digitalWrite(RELAY4_PIN, LOW);
-	else
+		Serial.println("RELAY4 ON");
+	} else {
 		digitalWrite(RELAY4_PIN, HIGH);
-	if (_pduControl & PDU_RELAY5_ON)
+		Serial.println("RELAY4 OFF");
+	}
+	if (_pduControl & PDU_RELAY5_ON) {
 		digitalWrite(RELAY5_PIN, LOW);
-	else
+		Serial.println("RELAY5 ON");
+	} else {
 		digitalWrite(RELAY5_PIN, HIGH);
-	if (_pduControl & PDU_RELAY6_ON)
+		Serial.println("RELAY5 OFF");
+	}
+	if (_pduControl & PDU_RELAY6_ON) {
 		digitalWrite(RELAY6_PIN, LOW);
-	else
+		Serial.println("RELAY6 ON");
+	} else {
 		digitalWrite(RELAY6_PIN, HIGH);
-	if (_pduControl & PDU_RELAY7_ON)
+		Serial.println("RELAY6 OFF");
+	}
+	if (_pduControl & PDU_RELAY7_ON) {
 		digitalWrite(RELAY7_PIN, LOW);
-	else
+		Serial.println("RELAY7 ON");
+	} else {
 		digitalWrite(RELAY7_PIN, HIGH);
-	if (_pduControl & PDU_ROUTER_ON)
+		Serial.println("RELAY7 OFF");
+	}
+	if (_pduControl & PDU_ROUTER_ON) {
 		SleepyPi.enableExtPower(true);
-	else
+		Serial.println("ROUTER ON");
+	} else {
 		SleepyPi.enableExtPower(false);
-	if (_pduControl & PDU_RPI_ON)
+		Serial.println("ROUTER OFF");
+	}
+	if (_pduControl & PDU_RPI_ON) {
 		_sleepyPi.enablePiPower(true);
-	else
+		Serial.println("RPI ON");
+	} else {
 		_sleepyPi.enablePiPower(false);
+		Serial.println("RPI OFF");
+	}
 }
 
 char MainTask::asciiToInt(unsigned char data)
@@ -243,6 +280,7 @@ void MainTask::readSolarCharger()
 	solarChargerData.loadCurrent = _solarCharger.getLoadCurrent();
 	solarChargerData.panelVoltage = _solarCharger.getPanelVoltage();
 	//solarChargerData.panelCurrent = _solarCharger.getPanelCurrent();	// not available on 10A/15A chargers
+	solarChargerData.panelCurrent = 0;
 	solarChargerData.panelPower = _solarCharger.getPanelPower();
 	solarChargerData.time = _sleepyPi.readTime().unixtime();
 	solarChargerData.cpuTemperature = getCpuTemperature();
