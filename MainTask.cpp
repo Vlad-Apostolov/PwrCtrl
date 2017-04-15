@@ -15,6 +15,7 @@ MainTask& MainTask::instance()
 	static MainTask *inst = NULL;
 	if (!inst) {
 		Serial.begin(19200);
+		Serial.println("");
 		Serial.println("MainTask started");
 		Serial.print("Free memory bytes: ");
 		Serial.println(freeMemory());
@@ -25,6 +26,8 @@ MainTask& MainTask::instance()
 		pinMode(RELAY5_PIN, OUTPUT);
 		pinMode(RELAY6_PIN, OUTPUT);
 		pinMode(RELAY7_PIN, OUTPUT);
+		pinMode(YELLOW_LED_PIN, OUTPUT);
+		digitalWrite(YELLOW_LED_PIN, LOW);	// yellow LED off
 		inst = new MainTask();
 	}
 	return *inst;
@@ -38,6 +41,7 @@ void MainTask::run()
 		if (_rtcInterrupt) {
 		    _sleepyPi.ackTimer1();
 			_rtcInterrupt = false;
+			_wdSeconds = 0;
 			_uptimeInMinutes++;
 			Serial.print("Up time: ");
 			Serial.print(_uptimeInMinutes);
@@ -57,9 +61,24 @@ void MainTask::run()
 				Wire.onRequest(i2cTransmitter);
 				powerDownPi(true);
 			}
+		} else {
+			// watchdog interrupt
+			_wdSeconds += 8;
+			if (_wdSeconds > ((60*(uint16_t)_rtcPeriodInMunutes) + _wdSeconds/10)) {
+				// check if RTC is working
+				if (!_rtcFailed) {
+					if (!_sleepyPi.rtcInit(true)) {
+						_rtcFailed = true;
+						Serial.println("RTC failed!");
+					} else
+						Serial.println("RTC didn't fire interrupt!");
+				}
+				_rtcInterrupt = true;	// simulate RTC interrupt
+				continue;
+			}
 		}
 		Serial.flush();
-		_sleepyPi.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 	}
 }
 
@@ -68,11 +87,12 @@ void MainTask::initRtc()
 	// Start I2C master
 	if (!_sleepyPi.rtcInit(true)) {
 		Serial.println("rtcInit() failed!");
+		_rtcFailed = true;
 		return;
 	}
 	Serial.println("Set RTC alarm in one minute");
     attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
-    _sleepyPi.setTimer1(eTB_MINUTE, 1);
+    _sleepyPi.setTimer1(eTB_MINUTE, _rtcPeriodInMunutes);
     delay(1000);
     _sleepyPi.ackTimer1();
 	_rtcInterrupt = false;
@@ -215,6 +235,7 @@ char MainTask::asciiToInt(unsigned char data)
 void MainTask::readSolarCharger()
 {
 	SolarChargerData& solarChargerData = nextSolarChargerDataWrite();
+	_solarCharger.connect();
 	solarChargerData.chargerVoltage = _solarCharger.getChargerVoltage();
 	solarChargerData.chargerCurrent = _solarCharger.getChargerCurrent();
 	solarChargerData.chargerPowerToday = _solarCharger.getPowerYieldToday();
@@ -225,6 +246,7 @@ void MainTask::readSolarCharger()
 	solarChargerData.panelPower = _solarCharger.getPanelPower();
 	solarChargerData.time = _sleepyPi.readTime().unixtime();
 	solarChargerData.cpuTemperature = getCpuTemperature();
+	_solarCharger.disconnect();
 	Serial.print("panelVoltage ");
 	Serial.println(solarChargerData.panelVoltage);
 	Serial.print("cpuTemperature ");

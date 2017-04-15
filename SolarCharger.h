@@ -29,8 +29,9 @@ public:
 			_panelVoltage(INVALID_RESULT),
 			_panelPower(INVALID_RESULT)
 	{
-		_comPort.begin(19200);
 	}
+	void connect() { _comPort.begin(19200); }
+	void disconnect() { _comPort.end(); }
 	uint16_t getChargerVoltage();
 	uint16_t getChargerCurrent();
 	uint16_t getPowerYieldToday();
@@ -107,6 +108,10 @@ private:
 	void parseGetSetFlags(uint8_t flags);
 	bool checkSumPassed();
 	uint8_t hexToBin(uint8_t data);
+	uint16_t readVictron(const char* command, uint16_t& result);
+	int16_t readVictron(const char* command, int16_t& result);
+	uint32_t readVictron(const char* command, uint32_t& result);
+	bool victronSend(const char* command);
 
 	SoftwareSerial _comPort;
 	CommandState _commandState;

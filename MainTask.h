@@ -49,6 +49,8 @@ private:
 #define RELAY7_PIN					8	// PB0
 
 #define MAX_SOLAR_CHARGER_DATA		20
+#define RTC_INTERRUPT_PERIOD		1
+#define YELLOW_LED_PIN				13
 
 	enum MessageTag {
 		TAG_PDU_CONTROL,
@@ -77,6 +79,9 @@ private:
 		_pduControl(0),
 		_solarChargerDataRead(0),
 		_solarChargerDataWrite(0),
+		_rtcPeriodInMunutes(RTC_INTERRUPT_PERIOD),
+		_wdSeconds(0),
+		_rtcFailed(false),
 		_solarCharger(SOLAR_CHARGER_RX_PIN, SOLAR_CHARGER_TX_PIN)
 	{
 	}
@@ -104,6 +109,9 @@ private:
 	uint16_t _pduControl;
 	uint8_t _solarChargerDataRead;
 	uint8_t _solarChargerDataWrite;
+	uint8_t _rtcPeriodInMunutes;
+	uint16_t _wdSeconds;
+	bool _rtcFailed;
 	SolarCharger _solarCharger;
 	char _message[MESSAGE_LENGHT];
 	SolarChargerData _solarChargerData[MAX_SOLAR_CHARGER_DATA];

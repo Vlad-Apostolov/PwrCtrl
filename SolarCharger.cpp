@@ -11,100 +11,90 @@
 uint16_t SolarCharger::getChargerVoltage()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7D5ED008C\n");
-	_chargerVoltage = INVALID_RESULT;
-	if (processReply())
-		return _chargerVoltage;
-
-	return INVALID_RESULT;
+	return readVictron(":7D5ED008C\n", _chargerVoltage);
 }
 
 uint16_t SolarCharger::getChargerCurrent()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7D7ED008A\n");
-	_chargerCurrent = INVALID_RESULT;
-	if (processReply())
-		return _chargerCurrent;
-
-	return INVALID_RESULT;
+	return readVictron(":7D7ED008A\n", _chargerCurrent);
 }
 
 uint16_t SolarCharger::getPowerYieldToday()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7D3ED008E\n");
-	_powerYieldToday = INVALID_RESULT;
-	if (processReply())
-		return _powerYieldToday;
-
-	return INVALID_RESULT;
+	return readVictron(":7D3ED008E\n", _powerYieldToday);
 }
 
 int16_t SolarCharger::getChargerTemperature()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7DBED0086\n");
-	_chargerTemperature = INVALID_RESULT;
-	if (processReply())
-		return _chargerTemperature;
-
-	return INVALID_RESULT;
+	return readVictron(":7DBED0086\n", _chargerTemperature);
 }
 
 uint16_t SolarCharger::getLoadVoltage()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7ACED00B5\n");
-	_loadVoltage = INVALID_RESULT;
-	if (processReply())
-		return _loadVoltage;
-
-	return INVALID_RESULT;
+	return readVictron(":7ACED00B5\n", _loadVoltage);
 }
 
 uint16_t SolarCharger::getLoadCurrent()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7ADED00B4\n");
-	_loadCurrent = INVALID_RESULT;
-	if (processReply())
-		return _loadCurrent;
-
-	return INVALID_RESULT;
+	return readVictron(":7ADED00B4\n", _loadCurrent);
 }
 
 uint16_t SolarCharger::getPanelVoltage()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7BBED00A6\n");
-	_panelVoltage = INVALID_RESULT;
-	if (processReply())
-		return _panelVoltage;
-
-	return INVALID_RESULT;
+	return readVictron(":7BBED00A6\n", _panelVoltage);
 }
 
 uint16_t SolarCharger::getPanelCurrent()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7BDED00A4\n");
-	_panelCurrent = INVALID_RESULT;
-	if (processReply())
-		return _panelCurrent;
-
-	return INVALID_RESULT;
+	return readVictron(":7BDED00A4\n", _panelCurrent);
 }
 
 uint32_t SolarCharger::getPanelPower()
 {
 	//Serial.println(__FUNCTION__);
-	_comPort.write(":7ADED00B4\n");
-	_panelPower = INVALID_RESULT;
-	if (processReply())
-		return _panelPower;
+	return readVictron(":7ADED00B4\n", _panelPower);
+}
 
+uint16_t SolarCharger::readVictron(const char* command, uint16_t& result)
+{
+	if (victronSend(command))
+		return result;
 	return INVALID_RESULT;
+}
+
+int16_t SolarCharger::readVictron(const char* command, int16_t& result)
+{
+	if (victronSend(command))
+		return result;
+	return INVALID_RESULT;
+}
+
+uint32_t SolarCharger::readVictron(const char* command, uint32_t& result)
+{
+	if (victronSend(command))
+		return result;
+	return INVALID_RESULT;
+}
+
+bool SolarCharger::victronSend(const char* command)
+{
+#define RETRY_COUNT	3
+	uint8_t retry = RETRY_COUNT;
+	while (retry) {
+		_comPort.write(command);
+		if (processReply())
+			return true;
+		retry--;
+	}
+	Serial.println("Failed...");
+	return false;
 }
 
 bool SolarCharger::processReply()
@@ -124,8 +114,6 @@ bool SolarCharger::processReply()
 		}
 	}
 	Serial.flush();
-	if (!result)
-		Serial.println("Failed...");
 
 	return result;
 }
