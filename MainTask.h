@@ -37,7 +37,7 @@ private:
 #define PDU_RELAY6_ON				0x0020
 #define PDU_RELAY7_ON				0x0040
 #define PDU_RELAY8_ON				0x0080
-#define PDU_ROUTER_ON				0x0100
+#define PDU_EXTERNAL_POWER_ON		0x0100
 #define PDU_RPI_ON					0x0200
 
 #define SOLAR_CHARGER_RX_PIN		10	// PB2
@@ -50,7 +50,7 @@ private:
 #define RELAY6_PIN					6	// PD6
 #define RELAY7_PIN					8	// PB0
 
-#define MAX_SOLAR_CHARGER_DATA		20
+#define MAX_SOLAR_CHARGER_DATA		10
 #define RTC_INTERRUPT_PERIOD		1
 #define YELLOW_LED_PIN				13
 

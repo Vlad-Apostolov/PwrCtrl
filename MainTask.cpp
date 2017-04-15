@@ -173,6 +173,8 @@ void MainTask::parseMessage(char data)
 			if (sscanf(_message, "$%x,%x", &tag, &value) == 2) {
 				switch (tag) {
 				case TAG_PDU_CONTROL:
+					Serial.print("TAG_PDU_CONTROL ");
+					Serial.println(value, HEX);
 					_pduControl = value;
 					setPdu();
 					break;
@@ -198,66 +200,48 @@ void MainTask::setPdu()
 {
 	if (_pduControl & PDU_RELAY1_ON) {
 		digitalWrite(RELAY1_PIN, LOW);
-		Serial.println("RELAY1 ON");
 	} else {
 		digitalWrite(RELAY1_PIN, HIGH);
-		Serial.println("RELAY1 OFF");
 	}
 	if (_pduControl & PDU_RELAY2_ON) {
 		digitalWrite(RELAY2_PIN, LOW);
-		Serial.println("RELAY2 ON");
 	} else {
 		digitalWrite(RELAY2_PIN, HIGH);
-		Serial.println("RELAY2 OFF");
 	}
 	if (_pduControl & PDU_RELAY3_ON) {
 		digitalWrite(RELAY3_PIN, LOW);
-		Serial.println("RELAY3 ON");
 	} else {
 		digitalWrite(RELAY3_PIN, HIGH);
-		Serial.println("RELAY4 OFF");
 	}
 	if (_pduControl & PDU_RELAY4_ON) {
 		digitalWrite(RELAY4_PIN, LOW);
-		Serial.println("RELAY4 ON");
 	} else {
 		digitalWrite(RELAY4_PIN, HIGH);
-		Serial.println("RELAY4 OFF");
 	}
 	if (_pduControl & PDU_RELAY5_ON) {
 		digitalWrite(RELAY5_PIN, LOW);
-		Serial.println("RELAY5 ON");
 	} else {
 		digitalWrite(RELAY5_PIN, HIGH);
-		Serial.println("RELAY5 OFF");
 	}
 	if (_pduControl & PDU_RELAY6_ON) {
 		digitalWrite(RELAY6_PIN, LOW);
-		Serial.println("RELAY6 ON");
 	} else {
 		digitalWrite(RELAY6_PIN, HIGH);
-		Serial.println("RELAY6 OFF");
 	}
 	if (_pduControl & PDU_RELAY7_ON) {
 		digitalWrite(RELAY7_PIN, LOW);
-		Serial.println("RELAY7 ON");
 	} else {
 		digitalWrite(RELAY7_PIN, HIGH);
-		Serial.println("RELAY7 OFF");
 	}
-	if (_pduControl & PDU_ROUTER_ON) {
+	if (_pduControl & PDU_EXTERNAL_POWER_ON) {
 		SleepyPi.enableExtPower(true);
-		Serial.println("ROUTER ON");
 	} else {
 		SleepyPi.enableExtPower(false);
-		Serial.println("ROUTER OFF");
 	}
 	if (_pduControl & PDU_RPI_ON) {
 		_sleepyPi.enablePiPower(true);
-		Serial.println("RPI ON");
 	} else {
 		_sleepyPi.enablePiPower(false);
-		Serial.println("RPI OFF");
 	}
 }
 
