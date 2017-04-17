@@ -19,15 +19,14 @@ MainTask& MainTask::instance()
 		Serial.println("MainTask started");
 		Serial.print("Free memory bytes: ");
 		Serial.println(freeMemory());
-		pinMode(RELAY1_PIN, OUTPUT);
-		pinMode(RELAY2_PIN, OUTPUT);
-		pinMode(RELAY3_PIN, OUTPUT);
-		pinMode(RELAY4_PIN, OUTPUT);
-		pinMode(RELAY5_PIN, OUTPUT);
-		pinMode(RELAY6_PIN, OUTPUT);
-		pinMode(RELAY7_PIN, OUTPUT);
-		pinMode(YELLOW_LED_PIN, OUTPUT);
-		digitalWrite(YELLOW_LED_PIN, LOW);	// yellow LED off
+		digitalWrite(RELAY1_PIN, HIGH); pinMode(RELAY1_PIN, OUTPUT);
+		digitalWrite(RELAY2_PIN, HIGH); pinMode(RELAY2_PIN, OUTPUT);
+		digitalWrite(RELAY3_PIN, HIGH); pinMode(RELAY3_PIN, OUTPUT);
+		digitalWrite(RELAY4_PIN, HIGH); pinMode(RELAY4_PIN, OUTPUT);
+		digitalWrite(RELAY5_PIN, HIGH); pinMode(RELAY5_PIN, OUTPUT);
+		digitalWrite(RELAY6_PIN, HIGH); pinMode(RELAY6_PIN, OUTPUT);
+		digitalWrite(RELAY7_PIN, HIGH); pinMode(RELAY7_PIN, OUTPUT);
+		digitalWrite(YELLOW_LED_PIN, LOW); pinMode(YELLOW_LED_PIN, OUTPUT);	// yellow LED off
 		inst = new MainTask();
 	}
 	return *inst;
@@ -35,7 +34,21 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
-	//powerDownPi(true);
+	//_sleepyPi.rtcCapSelect(eCAP_12_5pF);
+//	uint8_t control2Register;
+//	Serial.println("Set RTC one second periodic alarm");
+//    _sleepyPi.setTimer1(eTB_SECOND, 1);
+//	for (;;) {
+//		control2Register = _sleepyPi.rtcReadReg(PCF8523_CONTROL_2);
+//		Serial.println(control2Register, HEX);
+//		if (control2Register & _BV(PCF8523_CONTROL_2_CTAF_BIT)) {
+//			Serial.println("RTC interrupt");
+//			// clear PCF8523_CONTROL_2_CTAF_BIT interrupt flag
+//			_sleepyPi.rtcWriteReg(PCF8523_CONTROL_2, (control2Register & ~_BV(PCF8523_CONTROL_2_CTAF_BIT)));
+//		}
+//		delay(1000);
+//	}
+	powerDownPi(true);
 	initRtc();
 	for (;;) {
 		if (_rtcInterrupt) {
@@ -65,21 +78,13 @@ void MainTask::run()
 			// watchdog interrupt
 			_wdSeconds += 8;
 			if (_wdSeconds > ((60*(uint16_t)_rtcPeriodInMunutes) + _wdSeconds/10)) {
-				// check if RTC is working
-				if (!_rtcFailed) {
-					if (!_sleepyPi.rtcInit(true)) {
-						_rtcFailed = true;
-						Serial.println("RTC failed!");
-					} else
-						Serial.println("RTC didn't fire interrupt!");
-				}
+				Serial.println("RTC didn't fire interrupt!");
 				_rtcInterrupt = true;	// simulate RTC interrupt
 				continue;
 			}
 		}
 		Serial.flush();
-		//_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
-		_sleepyPi.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
+		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 	}
 }
 
@@ -93,8 +98,7 @@ void MainTask::initRtc()
 	}
 	Serial.println("Set RTC alarm in one minute");
     attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
-    //_sleepyPi.setTimer1(eTB_MINUTE, _rtcPeriodInMunutes);
-    _sleepyPi.setTimer1(eTB_SECOND, _rtcPeriodInMunutes);
+    _sleepyPi.setTimer1(eTB_MINUTE, _rtcPeriodInMunutes);
     delay(1000);
     _sleepyPi.ackTimer1();
 	_rtcInterrupt = false;
@@ -140,7 +144,7 @@ void MainTask::powerDownPi(bool state)
 			Serial.print(current);
 			Serial.println("mA");
 			Serial.flush();
-			_sleepyPi.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+			delay(1000);
 		} while (current >= _rpiShutdownCurrent);
 
 		Serial.println("Power down RPi");
@@ -266,7 +270,7 @@ void MainTask::readSolarCharger()
 	//solarChargerData.panelCurrent = _solarCharger.getPanelCurrent();	// not available on 10A/15A chargers
 	solarChargerData.panelCurrent = 0;
 	solarChargerData.panelPower = _solarCharger.getPanelPower();
-	solarChargerData.time = _sleepyPi.readTime().unixtime();
+	solarChargerData.time = _uptimeInMinutes;
 	solarChargerData.cpuTemperature = getCpuTemperature();
 	_solarCharger.disconnect();
 	Serial.print("panelVoltage ");
