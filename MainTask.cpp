@@ -55,18 +55,15 @@ void MainTask::run()
 		    _sleepyPi.ackTimer1();
 			_rtcInterrupt = false;
 			_wdSeconds = 0;
-			_uptimeInMinutes++;
+			_systemTime += 60;
+			_upTime++;
 			Serial.print("Up time: ");
-			Serial.print(_uptimeInMinutes);
-			if (_uptimeInMinutes == 1)
-				Serial.println(" minute");
-			else
-				Serial.println(" minutes");
-			if (_uptimeInMinutes%_spiSleepTime == 0) {
+			Serial.println(_upTime);
+			if (_upTime%_spiSleepTime == 0) {
 				Serial.println("Reading solar charger");
 				readSolarCharger();
 			}
-			if (_uptimeInMinutes%_rpiSleepTime == 0) {
+			if (_upTime%_rpiSleepTime == 0) {
 				powerDownPi(false);
 				// Start I2C slave
 				Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
@@ -119,14 +116,14 @@ void MainTask::i2cReceiver(int received)
 
 void MainTask::i2cTransmitter()
 {
-	Serial.print("i2cTransmitter ");
 	SolarChargerData* solarChargerData = MainTask::instance().nextSolarChargerDataRead();
-	Serial.println(sizeof(SolarChargerData));
 	if (solarChargerData == NULL) {
 		SolarChargerData dummy;
 		solarChargerData = &dummy;
 		memset(solarChargerData, 0, sizeof(SolarChargerData));
 	}
+	Serial.print("i2cTransmitter ");
+	Serial.println(solarChargerData->time);
 	Wire.write((uint8_t*)solarChargerData, sizeof(SolarChargerData));
 }
 
@@ -170,11 +167,12 @@ void MainTask::powerDownPi(bool state)
 
 void MainTask::parseMessage(char data)
 {
-	if (_messageIndex < MESSAGE_LENGHT) {	// message format "$XX,XXXX\0"
+	if (_messageIndex < MESSAGE_LENGHT) {	// message format "$XX,XXXXXXXX\0"
 		_message[_messageIndex++] = data;
 		if (data == 0) {
-			uint16_t tag, value;
-			if (sscanf(_message, "$%x,%x", &tag, &value) == 2) {
+			uint16_t tag;
+			uint32_t value;
+			if (sscanf(_message, "$%x,%lx", &tag, &value) == 2) {
 				switch (tag) {
 				case TAG_PDU_CONTROL:
 					Serial.print("TAG_PDU_CONTROL ");
@@ -191,6 +189,11 @@ void MainTask::parseMessage(char data)
 					Serial.print("TAG_SPI_SLEEP_TIME ");
 					Serial.println(value);
 					_spiSleepTime = (uint8_t)value;
+					break;
+				case TAG_SPI_SYSTEM_TIME:
+					Serial.print("TAG_SPI_SYSTEM_TIME ");
+					Serial.println(value);
+					_systemTime = value;
 					break;
 				}
 			}
@@ -270,7 +273,7 @@ void MainTask::readSolarCharger()
 	//solarChargerData.panelCurrent = _solarCharger.getPanelCurrent();	// not available on 10A/15A chargers
 	solarChargerData.panelCurrent = 0;
 	solarChargerData.panelPower = _solarCharger.getPanelPower();
-	solarChargerData.time = _uptimeInMinutes;
+	solarChargerData.time = _systemTime;
 	solarChargerData.cpuTemperature = getCpuTemperature();
 	_solarCharger.disconnect();
 	Serial.print("panelVoltage ");

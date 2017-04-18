@@ -19,13 +19,11 @@ public:
 	void run();
 
 private:
-//#define RPI_SLEEP_TIME				30
-//#define SPI_SLEEP_TIME				5
 #define RPI_SLEEP_TIME				1
 #define SPI_SLEEP_TIME				1
 #define RTC_INTERRUPT_PIN			0 /* (INT0) */
 #define ARDUINO_I2C_SLAVE_ADDRESS	55
-#define MESSAGE_LENGHT				9
+#define MESSAGE_LENGHT				13
 #define RPI_SHUTDOWN_CURRENT		150
 #define RPI_POWER_UP_CURRENT		200
 
@@ -57,7 +55,8 @@ private:
 	enum MessageTag {
 		TAG_PDU_CONTROL,
 		TAG_RPI_SLEEP_TIME,
-		TAG_SPI_SLEEP_TIME
+		TAG_SPI_SLEEP_TIME,
+		TAG_SPI_SYSTEM_TIME
 	};
 	struct SolarChargerData {
 		uint32_t time;
@@ -76,7 +75,8 @@ private:
 		_messageIndex(0),
 		_rpiSleepTime(RPI_SLEEP_TIME),
 		_spiSleepTime(SPI_SLEEP_TIME),
-		_uptimeInMinutes(0),
+		_systemTime(0),
+		_upTime(0),
 		_rpiShutdownCurrent(RPI_SHUTDOWN_CURRENT),
 		_pduControl(0),
 		_solarChargerDataRead(0),
@@ -106,7 +106,8 @@ private:
 	uint8_t _messageIndex;
 	uint8_t _rpiSleepTime;
 	uint8_t _spiSleepTime;
-	uint8_t _uptimeInMinutes;
+	uint32_t _systemTime;
+	uint16_t _upTime;
 	uint16_t _rpiShutdownCurrent;
 	uint16_t _pduControl;
 	uint8_t _solarChargerDataRead;
