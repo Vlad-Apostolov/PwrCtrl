@@ -24,7 +24,6 @@ public:
 			_chargerVoltage(INVALID_RESULT),
 			_chargerTemperature(INVALID_RESULT),
 			_loadCurrent(INVALID_RESULT),
-			_loadVoltage(INVALID_RESULT),
 			_panelCurrent(INVALID_RESULT),
 			_panelVoltage(INVALID_RESULT),
 			_panelPower(INVALID_RESULT)
@@ -94,7 +93,6 @@ private:
 
 	enum LoadOutputRegister {
 		LOR_CURRENT = 0xADED,
-		LOR_VOLTAGE = 0xACED,
 		LOR_CONTROL = 0xABED,
 		LOR_STATE = 0xA8ED,
 		LOR_SWITCH_HIGH_LEVEL = 0x9DED,
@@ -123,7 +121,6 @@ private:
 	uint16_t _chargerVoltage;
 	int16_t _chargerTemperature;
 	uint16_t _loadCurrent;
-	uint16_t _loadVoltage;
 	uint16_t _panelCurrent;
 	uint16_t _panelVoltage;
 	uint32_t _panelPower;

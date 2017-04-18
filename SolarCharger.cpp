@@ -32,12 +32,6 @@ int16_t SolarCharger::getChargerTemperature()
 	return readVictron(":7DBED0086\n", _chargerTemperature);
 }
 
-uint16_t SolarCharger::getLoadVoltage()
-{
-	//Serial.println(__FUNCTION__);
-	return readVictron(":7ACED00B5\n", _loadVoltage);
-}
-
 uint16_t SolarCharger::getLoadCurrent()
 {
 	//Serial.println(__FUNCTION__);
@@ -59,7 +53,7 @@ uint16_t SolarCharger::getPanelCurrent()
 uint32_t SolarCharger::getPanelPower()
 {
 	//Serial.println(__FUNCTION__);
-	return readVictron(":7ADED00B4\n", _panelPower);
+	return readVictron(":7BCED00A5\n", _panelPower);
 }
 
 uint16_t SolarCharger::readVictron(const char* command, uint16_t& result)
@@ -209,10 +203,6 @@ bool SolarCharger::parseCommand()
 			break;
 		case LOR_CURRENT:
 			_loadCurrent = registerData;
-			result = true;
-			break;
-		case LOR_VOLTAGE:
-			_loadVoltage = registerData;
 			result = true;
 			break;
 		case SPR_CURRENT:

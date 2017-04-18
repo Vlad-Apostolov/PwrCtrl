@@ -267,7 +267,6 @@ void MainTask::readSolarCharger()
 	solarChargerData.chargerVoltage = _solarCharger.getChargerVoltage();
 	solarChargerData.chargerCurrent = _solarCharger.getChargerCurrent();
 	solarChargerData.chargerPowerToday = _solarCharger.getPowerYieldToday();
-	solarChargerData.loadVoltage = _solarCharger.getLoadVoltage();
 	solarChargerData.loadCurrent = _solarCharger.getLoadCurrent();
 	solarChargerData.panelVoltage = _solarCharger.getPanelVoltage();
 	//solarChargerData.panelCurrent = _solarCharger.getPanelCurrent();	// not available on 10A/15A chargers
@@ -278,6 +277,16 @@ void MainTask::readSolarCharger()
 	_solarCharger.disconnect();
 	Serial.print("panelVoltage ");
 	Serial.println(solarChargerData.panelVoltage);
+	Serial.print("panelPower ");
+	Serial.println(solarChargerData.panelPower);
+	Serial.print("chargerVoltage ");
+	Serial.println(solarChargerData.chargerVoltage);
+	Serial.print("chargerCurrent ");
+	Serial.println(solarChargerData.chargerCurrent);
+	Serial.print("chargerPowerToday ");
+	Serial.println(solarChargerData.chargerPowerToday);
+	Serial.print("loadCurrent ");
+	Serial.println(solarChargerData.loadCurrent);
 	Serial.print("cpuTemperature ");
 	Serial.println(solarChargerData.cpuTemperature);
 }

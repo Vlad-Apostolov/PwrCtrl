@@ -48,7 +48,7 @@ private:
 #define RELAY6_PIN					6	// PD6
 #define RELAY7_PIN					8	// PB0
 
-#define MAX_SOLAR_CHARGER_DATA		10
+#define MAX_SOLAR_CHARGER_DATA		12
 #define RTC_INTERRUPT_PERIOD		1
 #define YELLOW_LED_PIN				13
 
@@ -61,13 +61,12 @@ private:
 	struct SolarChargerData {
 		uint32_t time;
 		uint32_t panelPower;
+		uint16_t panelVoltage;
+		uint16_t panelCurrent;
 		uint16_t chargerVoltage;
 		uint16_t chargerCurrent;
 		uint16_t chargerPowerToday;
-		uint16_t loadVoltage;
 		uint16_t loadCurrent;
-		uint16_t panelVoltage;
-		uint16_t panelCurrent;
 		int16_t cpuTemperature;
 	};
 	MainTask() :
