@@ -34,6 +34,7 @@ public:
 	uint16_t getChargerVoltage();
 	uint16_t getChargerCurrent();
 	uint16_t getPowerYieldToday();
+	uint16_t getMaxPowerToday();
 	int16_t getChargerTemperature();
 	uint16_t getLoadVoltage();
 	uint16_t getLoadCurrent();
@@ -117,6 +118,7 @@ private:
 	uint8_t _commandSize;
 	uint8_t _firstNibble;
 	uint16_t _powerYieldToday;
+	uint16_t _maxPowerToday;
 	uint16_t _chargerCurrent;
 	uint16_t _chargerVoltage;
 	int16_t _chargerTemperature;

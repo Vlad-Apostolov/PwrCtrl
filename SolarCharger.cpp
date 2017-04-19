@@ -26,6 +26,12 @@ uint16_t SolarCharger::getPowerYieldToday()
 	return readVictron(":7D3ED008E\n", _powerYieldToday);
 }
 
+uint16_t SolarCharger::getMaxPowerToday()
+{
+	//Serial.println(__FUNCTION__);
+	return readVictron(":7D2ED008F\n", _maxPowerToday);
+}
+
 int16_t SolarCharger::getChargerTemperature()
 {
 	//Serial.println(__FUNCTION__);
@@ -187,6 +193,10 @@ bool SolarCharger::parseCommand()
 		switch (registerId) {
 		case CR_YIELD_TODAY:
 			_powerYieldToday = registerData;
+			result = true;
+			break;
+		case CR_MAX_POWER_TODAY:
+			_maxPowerToday = registerData;
 			result = true;
 			break;
 		case CR_CURRENT:
