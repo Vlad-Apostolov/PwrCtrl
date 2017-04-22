@@ -34,29 +34,23 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
-	//_sleepyPi.rtcCapSelect(eCAP_12_5pF);
-//	uint8_t control2Register;
-//	Serial.println("Set RTC one second periodic alarm");
-//    _sleepyPi.setTimer1(eTB_SECOND, 1);
-//	for (;;) {
-//		control2Register = _sleepyPi.rtcReadReg(PCF8523_CONTROL_2);
-//		Serial.println(control2Register, HEX);
-//		if (control2Register & _BV(PCF8523_CONTROL_2_CTAF_BIT)) {
-//			Serial.println("RTC interrupt");
-//			// clear PCF8523_CONTROL_2_CTAF_BIT interrupt flag
-//			_sleepyPi.rtcWriteReg(PCF8523_CONTROL_2, (control2Register & ~_BV(PCF8523_CONTROL_2_CTAF_BIT)));
-//		}
-//		delay(1000);
-//	}
 	powerDownPi(true);
+	delay(5000);	// wait for the RTC oscillator to eventually start
 	initRtc();
 	for (;;) {
-		if (_rtcInterrupt) {
-		    _sleepyPi.ackTimer1();
-			_rtcInterrupt = false;
+		if (_rtcInterrupt || _wdtInterrupt) {
+			_wdtInterrupt = false;
 			_wdSeconds = 0;
-			_systemTime += 60;
+			if (_rtcInterrupt) {
+				_sleepyPi.ackTimer1();
+				_rtcFailed = false;
+				_rtcInterrupt = false;
+			}
+			_systemTime += 60 * (uint16_t)_rtcPeriodInMunutes;
 			_upTime++;
+			Serial.println("");
+			_rtcFailed ? Serial.print("WDT") :  Serial.print("RTC");
+			Serial.print(" interrupt. ");
 			Serial.print("Up time: ");
 			Serial.println(_upTime);
 			if (_upTime%_spiSleepTime == 0) {
@@ -72,16 +66,24 @@ void MainTask::run()
 				powerDownPi(true);
 			}
 		} else {
-			// watchdog interrupt
-			_wdSeconds += 8;
-			if (_wdSeconds > ((60*(uint16_t)_rtcPeriodInMunutes) + _wdSeconds/10)) {
-				Serial.println("RTC didn't fire interrupt!");
-				_rtcInterrupt = true;	// simulate RTC interrupt
-				continue;
+			// watchdog timer interrupt
+			_wdSeconds += 4;
+			if (_wdSeconds >= 60) {
+				if (_rtcFailed) {
+					_wdtInterrupt = true;
+					continue;
+				}
+				uint16_t rtcPeriodInSeconds = (60 + 6) * (uint16_t)_rtcPeriodInMunutes; // allow for +10% WD inaccuracy
+				if (_wdSeconds > rtcPeriodInSeconds) {
+					Serial.println("RTC didn't fire interrupt!");
+					_rtcFailed = true;
+					_wdtInterrupt = true;
+					continue;
+				}
 			}
 		}
 		Serial.flush();
-		_sleepyPi.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+		_sleepyPi.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
 	}
 }
 
@@ -104,6 +106,8 @@ void MainTask::initRtc()
 void MainTask::rtcInterrupt()
 {
 	MainTask::instance()._rtcInterrupt = true;
+	MainTask::instance()._wdtInterrupt = true;
+	MainTask::instance()._rtcFailed = false;
 }
 
 void MainTask::i2cReceiver(int received)

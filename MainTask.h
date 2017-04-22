@@ -25,7 +25,7 @@ private:
 #define ARDUINO_I2C_SLAVE_ADDRESS	55
 #define MESSAGE_LENGHT				13
 #define RPI_SHUTDOWN_CURRENT		150
-#define RPI_POWER_UP_CURRENT		200
+#define RPI_POWER_UP_CURRENT		250
 
 #define PDU_RELAY1_ON				0x0001
 #define PDU_RELAY2_ON				0x0002
@@ -71,6 +71,7 @@ private:
 	};
 	MainTask() :
 		_rtcInterrupt(false),
+		_wdtInterrupt(false),
 		_messageIndex(0),
 		_rpiSleepTime(RPI_SLEEP_TIME),
 		_spiSleepTime(SPI_SLEEP_TIME),
@@ -102,6 +103,7 @@ private:
 
 	SleepyPiClass _sleepyPi;
 	bool _rtcInterrupt;
+	bool _wdtInterrupt;
 	uint8_t _messageIndex;
 	uint8_t _rpiSleepTime;
 	uint8_t _spiSleepTime;
