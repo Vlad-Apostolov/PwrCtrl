@@ -151,6 +151,7 @@ void MainTask::powerDownPi(bool state)
 		Serial.println("Power down RPi");
 		_pduControl &= ~PDU_RPI_ON;
 		setPdu();
+		delay(5000);		// make sure RPi loses the power before next power up
 	} else {
 		Serial.println("Power up RPi");
 		_pduControl |= PDU_RPI_ON;
