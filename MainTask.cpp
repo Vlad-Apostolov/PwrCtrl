@@ -10,6 +10,8 @@
 
 #include "MainTask.h"
 
+extern unsigned char wdtInterrupt;
+
 MainTask& MainTask::instance()
 {
 	static MainTask *inst = NULL;
@@ -34,6 +36,7 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
+	startI2cSlave();
 	powerDownPi(true);
 	delay(5000);	// wait for the RTC oscillator to eventually start
 	initRtc();
@@ -59,14 +62,11 @@ void MainTask::run()
 			}
 			if (_upTime%_rpiSleepTime == 0) {
 				powerDownPi(false);
-				// Start I2C slave
-				Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
-				Wire.onReceive(i2cReceiver);
-				Wire.onRequest(i2cTransmitter);
 				powerDownPi(true);
 			}
-		} else {
+		} else if (wdtInterrupt) {
 			// watchdog timer interrupt
+			wdtInterrupt = 0;
 			_wdSeconds += 4;
 			if (_wdSeconds >= 60) {
 				if (_rtcFailed) {
@@ -84,7 +84,15 @@ void MainTask::run()
 		}
 		Serial.flush();
 		_sleepyPi.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
+		delay(3);	// this is needed for the I2C slave to work in sleep mode
 	}
+}
+
+void MainTask::startI2cSlave()
+{
+	Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
+	Wire.onReceive(i2cReceiver);
+	Wire.onRequest(i2cTransmitter);
 }
 
 void MainTask::initRtc()
@@ -101,6 +109,7 @@ void MainTask::initRtc()
     delay(1000);
     _sleepyPi.ackTimer1();
 	_rtcInterrupt = false;
+	startI2cSlave();
 }
 
 void MainTask::rtcInterrupt()

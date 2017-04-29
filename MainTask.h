@@ -100,6 +100,7 @@ private:
 	SolarChargerData& nextSolarChargerDataWrite();
 	SolarChargerData* nextSolarChargerDataRead();
 	int8_t getCpuTemperature();
+	void startI2cSlave();
 
 	SleepyPiClass _sleepyPi;
 	bool _rtcInterrupt;
