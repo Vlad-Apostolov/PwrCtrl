@@ -36,7 +36,6 @@ private:
 #define PDU_RELAY7_ON				0x0040
 #define PDU_RELAY8_ON				0x0080
 #define PDU_EXTERNAL_POWER_ON		0x0100
-#define PDU_RPI_ON					0x0200
 
 #define SOLAR_CHARGER_RX_PIN		10	// PB2
 #define SOLAR_CHARGER_TX_PIN		9	// PB1

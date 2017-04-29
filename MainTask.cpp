@@ -158,13 +158,11 @@ void MainTask::powerDownPi(bool state)
 		} while (current >= _rpiShutdownCurrent);
 
 		Serial.println("Power down RPi");
-		_pduControl &= ~PDU_RPI_ON;
-		setPdu();
+		_sleepyPi.enablePiPower(false);
 		delay(5000);		// make sure RPi loses the power before next power up
 	} else {
 		Serial.println("Power up RPi");
-		_pduControl |= PDU_RPI_ON;
-		setPdu();
+		_sleepyPi.enablePiPower(true);
 		Serial.print("Waiting for RPi to power up at RPi current threshold ");
 		Serial.print(RPI_POWER_UP_CURRENT);
 		Serial.println(" mA");
@@ -258,11 +256,6 @@ void MainTask::setPdu()
 		SleepyPi.enableExtPower(true);
 	} else {
 		SleepyPi.enableExtPower(false);
-	}
-	if (_pduControl & PDU_RPI_ON) {
-		_sleepyPi.enablePiPower(true);
-	} else {
-		_sleepyPi.enablePiPower(false);
 	}
 }
 
