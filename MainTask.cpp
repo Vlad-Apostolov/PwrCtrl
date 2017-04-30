@@ -37,8 +37,12 @@ MainTask& MainTask::instance()
 void MainTask::run()
 {
 	startI2cSlave();
+	Serial.println("Wait 40 seconds for the router to boot up and connect");
+	delay(40000);
+	Serial.println("Power up RPi to get the configuration from the web");
+	powerDownPi(false);
+	Serial.println("Wait for RPi to finish its work");
 	powerDownPi(true);
-	delay(5000);	// wait for the RTC oscillator to eventually start
 	initRtc();
 	for (;;) {
 		if (_rtcInterrupt || _wdtInterrupt) {

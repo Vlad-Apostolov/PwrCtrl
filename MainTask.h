@@ -19,7 +19,7 @@ public:
 	void run();
 
 private:
-#define RPI_SLEEP_TIME				1
+#define RPI_SLEEP_TIME				2
 #define SPI_SLEEP_TIME				1
 #define RTC_INTERRUPT_PIN			0 /* (INT0) */
 #define ARDUINO_I2C_SLAVE_ADDRESS	55
