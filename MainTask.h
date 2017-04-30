@@ -19,7 +19,7 @@ public:
 	void run();
 
 private:
-#define RPI_SLEEP_TIME				1
+#define RPI_SLEEP_TIME				2
 #define SPI_SLEEP_TIME				1
 #define RTC_INTERRUPT_PIN			0 /* (INT0) */
 #define ARDUINO_I2C_SLAVE_ADDRESS	55
@@ -36,7 +36,6 @@ private:
 #define PDU_RELAY7_ON				0x0040
 #define PDU_RELAY8_ON				0x0080
 #define PDU_EXTERNAL_POWER_ON		0x0100
-#define PDU_RPI_ON					0x0200
 
 #define SOLAR_CHARGER_RX_PIN		10	// PB2
 #define SOLAR_CHARGER_TX_PIN		9	// PB1
@@ -100,6 +99,7 @@ private:
 	SolarChargerData& nextSolarChargerDataWrite();
 	SolarChargerData* nextSolarChargerDataRead();
 	int8_t getCpuTemperature();
+	void startI2cSlave();
 
 	SleepyPiClass _sleepyPi;
 	bool _rtcInterrupt;

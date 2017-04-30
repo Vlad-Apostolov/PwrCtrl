@@ -10,6 +10,8 @@
 
 #include "MainTask.h"
 
+extern unsigned char wdtInterrupt;
+
 MainTask& MainTask::instance()
 {
 	static MainTask *inst = NULL;
@@ -34,8 +36,13 @@ MainTask& MainTask::instance()
 
 void MainTask::run()
 {
+	startI2cSlave();
+	Serial.println("Wait 40 seconds for the router to boot up and connect");
+	delay(40000);
+	Serial.println("Power up RPi to get the configuration from the web");
+	powerDownPi(false);
+	Serial.println("Wait for RPi to finish its work");
 	powerDownPi(true);
-	delay(5000);	// wait for the RTC oscillator to eventually start
 	initRtc();
 	for (;;) {
 		if (_rtcInterrupt || _wdtInterrupt) {
@@ -59,14 +66,11 @@ void MainTask::run()
 			}
 			if (_upTime%_rpiSleepTime == 0) {
 				powerDownPi(false);
-				// Start I2C slave
-				Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
-				Wire.onReceive(i2cReceiver);
-				Wire.onRequest(i2cTransmitter);
 				powerDownPi(true);
 			}
-		} else {
+		} else if (wdtInterrupt) {
 			// watchdog timer interrupt
+			wdtInterrupt = 0;
 			_wdSeconds += 4;
 			if (_wdSeconds >= 60) {
 				if (_rtcFailed) {
@@ -84,7 +88,15 @@ void MainTask::run()
 		}
 		Serial.flush();
 		_sleepyPi.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
+		delay(3);	// this is needed for the I2C slave to work in sleep mode
 	}
+}
+
+void MainTask::startI2cSlave()
+{
+	Wire.begin(ARDUINO_I2C_SLAVE_ADDRESS);
+	Wire.onReceive(i2cReceiver);
+	Wire.onRequest(i2cTransmitter);
 }
 
 void MainTask::initRtc()
@@ -101,6 +113,7 @@ void MainTask::initRtc()
     delay(1000);
     _sleepyPi.ackTimer1();
 	_rtcInterrupt = false;
+	startI2cSlave();
 }
 
 void MainTask::rtcInterrupt()
@@ -149,13 +162,11 @@ void MainTask::powerDownPi(bool state)
 		} while (current >= _rpiShutdownCurrent);
 
 		Serial.println("Power down RPi");
-		_pduControl &= ~PDU_RPI_ON;
-		setPdu();
+		_sleepyPi.enablePiPower(false);
 		delay(5000);		// make sure RPi loses the power before next power up
 	} else {
 		Serial.println("Power up RPi");
-		_pduControl |= PDU_RPI_ON;
-		setPdu();
+		_sleepyPi.enablePiPower(true);
 		Serial.print("Waiting for RPi to power up at RPi current threshold ");
 		Serial.print(RPI_POWER_UP_CURRENT);
 		Serial.println(" mA");
@@ -249,11 +260,6 @@ void MainTask::setPdu()
 		SleepyPi.enableExtPower(true);
 	} else {
 		SleepyPi.enableExtPower(false);
-	}
-	if (_pduControl & PDU_RPI_ON) {
-		_sleepyPi.enablePiPower(true);
-	} else {
-		_sleepyPi.enablePiPower(false);
 	}
 }
 
