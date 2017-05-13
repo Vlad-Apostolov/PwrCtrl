@@ -10,6 +10,8 @@
 
 #include <SoftwareSerial.h>
 
+#include "HistoryDayRecord.h"
+
 class SolarCharger {
 public:
 #define INVALID_DATA			0xFF
@@ -19,28 +21,30 @@ public:
 			_commandState(CMD_HEADER),
 			_commandSize(0),
 			_firstNibble(INVALID_DATA),
-			_powerYieldToday(INVALID_RESULT),
+			_energyYieldToday(INVALID_RESULT),
 			_chargerCurrent(INVALID_RESULT),
 			_chargerVoltage(INVALID_RESULT),
 			_chargerTemperature(INVALID_RESULT),
 			_loadCurrent(INVALID_RESULT),
 			_panelCurrent(INVALID_RESULT),
 			_panelVoltage(INVALID_RESULT),
-			_panelPower(INVALID_RESULT)
+			_panelPower(INVALID_RESULT),
+			_deviceState(0)
 	{
 	}
 	void connect() { _comPort.begin(19200); }
 	void disconnect() { _comPort.end(); }
 	uint16_t getChargerVoltage();
 	uint16_t getChargerCurrent();
-	uint16_t getPowerYieldToday();
-	uint16_t getMaxPowerToday();
+	uint16_t getEnergyYieldToday();
 	int16_t getChargerTemperature();
 	uint16_t getLoadVoltage();
 	uint16_t getLoadCurrent();
 	uint16_t getPanelVoltage();
 	uint16_t getPanelCurrent();
 	uint32_t getPanelPower();
+	uint16_t getDeviceState();
+	HistoryDayRecord* getHistoryDayRecordy(uint8_t day);
 
 	virtual ~SolarCharger() {}
 
@@ -76,13 +80,13 @@ private:
 		CR_CURRENT = 0xD7ED,
 		CR_VOLTAGE = 0xD5ED,
 		CR_STATE_INFO = 0xD4ED,
-		CR_YIELD_TODAY = 0xD3ED,
-		CR_MAX_POWER_TODAY = 0xD2ED,
+		CR_ENERGY_YIELD_TODAY = 0xD3ED,
 		CR_YIELD_YESTERDAY = 0xD1ED,
 		CR_MAX_POWER_YESTERDAY = 0xD0ED,
 		CR_VOLTAGE_RANGE = 0xCEED,
 		CR_HISTORY_VERSION = 0xCDED,
-		CR_STREETLIGHT_VERSION = 0xCCED
+		CR_STREETLIGHT_VERSION = 0xCCED,
+		CR_HISTORY_DAY_RECORD = 0x5010
 	};
 
 	enum SolarPanelRegister {
@@ -100,6 +104,8 @@ private:
 		LOR = 0x9CED
 	};
 
+#define	SR_DEVICE_STATE	0x0102
+
 	SolarCharger();
 	bool processReply();
 	bool processSerialData(uint8_t data);
@@ -110,14 +116,16 @@ private:
 	uint16_t readVictron(const char* command, uint16_t& result);
 	int16_t readVictron(const char* command, int16_t& result);
 	uint32_t readVictron(const char* command, uint32_t& result);
+	HistoryDayRecord* readVictron(const char* command);
 	bool victronSend(const char* command);
+	bool processHistoryRecord();
 
 	SoftwareSerial _comPort;
 	CommandState _commandState;
 	uint8_t _command[MAX_COMMAND_SIZE];
 	uint8_t _commandSize;
 	uint8_t _firstNibble;
-	uint16_t _powerYieldToday;
+	uint16_t _energyYieldToday;
 	uint16_t _maxPowerToday;
 	uint16_t _chargerCurrent;
 	uint16_t _chargerVoltage;
@@ -126,6 +134,8 @@ private:
 	uint16_t _panelCurrent;
 	uint16_t _panelVoltage;
 	uint32_t _panelPower;
+	uint16_t _deviceState;
+	HistoryDayRecord _historyDayRecord;
 };
 
 #endif /* SOLARCHARGER_H_ */
