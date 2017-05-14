@@ -12,14 +12,17 @@
 
 extern unsigned char wdtInterrupt;
 
+#define SYSMON_IS_RUNNING	7	// PD7 - Handshake to show that the SysMon is running - Active High
+
 MainTask& MainTask::instance()
 {
 	static MainTask *inst = NULL;
 	if (!inst) {
+		pinMode(SYSMON_IS_RUNNING, INPUT);
 		Serial.begin(19200);
-		Serial.println("");
-		Serial.println("MainTask started");
-		Serial.print("Free memory bytes: ");
+		Serial.println();
+		Serial.println(F("MainTask started"));
+		Serial.print(F("Free memory bytes: "));
 		Serial.println(freeMemory());
 		digitalWrite(RELAY1_PIN, HIGH); pinMode(RELAY1_PIN, OUTPUT);
 		digitalWrite(RELAY2_PIN, HIGH); pinMode(RELAY2_PIN, OUTPUT);
@@ -37,12 +40,12 @@ MainTask& MainTask::instance()
 void MainTask::run()
 {
 	startI2cSlave();
-	Serial.println("Wait 40 seconds for the router to boot up and connect");
+	Serial.println(F("Wait 40 seconds for the router to boot up and connect"));
 	delay(40000);
-	Serial.println("Power up RPi to get the configuration from the web");
-	powerDownPi(false);
-	Serial.println("Wait for RPi to finish its work");
-	powerDownPi(true);
+	Serial.println(F("Power up RPi to get the configuration from the web"));
+	powerUpPi();
+	Serial.println(F("Wait for RPi to finish its work"));
+	powerDownPi();
 	initRtc();
 	for (;;) {
 		if (_rtcInterrupt || _wdtInterrupt) {
@@ -55,18 +58,18 @@ void MainTask::run()
 			}
 			_systemTime += 60 * (uint16_t)_rtcPeriodInMunutes;
 			_upTime++;
-			Serial.println("");
-			_rtcFailed ? Serial.print("WDT") :  Serial.print("RTC");
-			Serial.print(" interrupt. ");
-			Serial.print("Up time: ");
+			Serial.println();
+			_rtcFailed ? Serial.print(F("WDT")) :  Serial.print(F("RTC"));
+			Serial.print(F(" interrupt. "));
+			Serial.print(F("Up time: "));
 			Serial.println(_upTime);
 			if (_upTime%_spiSleepTime == 0) {
-				Serial.println("Reading solar charger");
+				Serial.println(F("Reading solar charger"));
 				readSolarCharger();
 			}
 			if (_upTime%_rpiSleepTime == 0) {
-				powerDownPi(false);
-				powerDownPi(true);
+				powerUpPi();
+				powerDownPi();
 			}
 		} else if (wdtInterrupt) {
 			// watchdog timer interrupt
@@ -79,7 +82,7 @@ void MainTask::run()
 				}
 				uint16_t rtcPeriodInSeconds = (60 + 6) * (uint16_t)_rtcPeriodInMunutes; // allow for +10% WD inaccuracy
 				if (_wdSeconds > rtcPeriodInSeconds) {
-					Serial.println("RTC didn't fire interrupt!");
+					Serial.println(F("RTC didn't fire interrupt!"));
 					_rtcFailed = true;
 					_wdtInterrupt = true;
 					continue;
@@ -103,11 +106,11 @@ void MainTask::initRtc()
 {
 	// Start I2C master
 	if (!_sleepyPi.rtcInit(true)) {
-		Serial.println("rtcInit() failed!");
+		Serial.println(F("rtcInit() failed!"));
 		_rtcFailed = true;
 		return;
 	}
-	Serial.println("Set RTC alarm in one minute");
+	Serial.println(F("Set RTC alarm in one minute"));
     attachInterrupt(RTC_INTERRUPT_PIN, rtcInterrupt, FALLING);
     _sleepyPi.setTimer1(eTB_MINUTE, _rtcPeriodInMunutes);
     delay(1000);
@@ -125,7 +128,7 @@ void MainTask::rtcInterrupt()
 
 void MainTask::i2cReceiver(int received)
 {
-	Serial.print("i2cReceiver ");
+	Serial.print(F("i2cReceiver "));
 	Serial.println(received);
 	while (Wire.available())
 		MainTask::instance().parseMessage(Wire.read());
@@ -139,46 +142,66 @@ void MainTask::i2cTransmitter()
 		solarChargerData = &dummy;
 		memset(solarChargerData, 0, sizeof(SolarChargerData));
 	}
-	Serial.print("i2cTransmitter ");
+	Serial.print(F("i2cTransmitter "));
 	Serial.println(solarChargerData->time);
 	Wire.write((uint8_t*)solarChargerData, sizeof(SolarChargerData));
 }
 
-void MainTask::powerDownPi(bool state)
+void MainTask::powerUpPi()
 {
+	Serial.println(F("Power up RPi"));
+	_sleepyPi.enablePiPower(true);
+	Serial.print(F("Waiting for RPi to power up at RPi current threshold "));
+	Serial.print(RPI_POWER_UP_CURRENT);
+	Serial.println(F(" mA"));
 	uint16_t current;
+	unsigned long powerUpTimeout = millis();
+#define POWER_UP_TIMEOUT	60000	// one minute
+	do {
+		current = _sleepyPi.rpiCurrent();
+		Serial.print(F("RPi current: "));
+		Serial.print(current);
+		Serial.println(F("mA"));
+		Serial.flush();
+		delay(1000);
+		if (digitalRead(SYSMON_IS_RUNNING))
+			powerUpTimeout = millis();
+		else if ((millis() - powerUpTimeout) > POWER_UP_TIMEOUT) {
+			Serial.print(F("RPi didn't power up! Cycle RPi power and try again."));
+			_sleepyPi.enablePiPower(false);
+			delay(2000);
+			_sleepyPi.enablePiPower(true);
+			powerUpTimeout = millis();
+		}
+	} while (current < RPI_POWER_UP_CURRENT);
+}
 
-	if (state) {
-		Serial.print("Waiting for RPi to shutdown at RPi current threshold ");
-		Serial.print(_rpiShutdownCurrent);
-		Serial.println(" mA");
-		do {
-			current = _sleepyPi.rpiCurrent();
-			Serial.print("RPi current: ");
-			Serial.print(current);
-			Serial.println("mA");
-			Serial.flush();
-			delay(1000);
-		} while (current >= _rpiShutdownCurrent);
+void MainTask::powerDownPi()
+{
+	Serial.print(F("Waiting for RPi to shutdown at RPi current threshold "));
+	Serial.print(_rpiShutdownCurrent);
+	Serial.println(F(" mA"));
+	uint16_t current;
+	unsigned long powerUpTimeout = millis();
+#define POWER_DOWN_TIMEOUT	60000	// one minute
+	do {
+		current = _sleepyPi.rpiCurrent();
+		Serial.print(F("RPi current: "));
+		Serial.print(current);
+		Serial.println(F("mA"));
+		Serial.flush();
+		delay(1000);
+		if (digitalRead(SYSMON_IS_RUNNING))
+			powerUpTimeout = millis();
+		else if ((millis() - powerUpTimeout) > POWER_UP_TIMEOUT) {
+			Serial.print(F("RPi didn't power down! Force power down."));
+			break;
+		}
+	} while (current >= _rpiShutdownCurrent);
 
-		Serial.println("Power down RPi");
-		_sleepyPi.enablePiPower(false);
-		delay(5000);		// make sure RPi loses the power before next power up
-	} else {
-		Serial.println("Power up RPi");
-		_sleepyPi.enablePiPower(true);
-		Serial.print("Waiting for RPi to power up at RPi current threshold ");
-		Serial.print(RPI_POWER_UP_CURRENT);
-		Serial.println(" mA");
-		do {
-			current = _sleepyPi.rpiCurrent();
-			Serial.print("RPi current: ");
-			Serial.print(current);
-			Serial.println("mA");
-			Serial.flush();
-			delay(1000);
-		} while (current < RPI_POWER_UP_CURRENT);
-	}
+	Serial.println(F("Power down RPi"));
+	_sleepyPi.enablePiPower(false);
+	delay(5000);		// make sure RPi loses the power before next power up
 }
 
 void MainTask::parseMessage(char data)
@@ -191,25 +214,25 @@ void MainTask::parseMessage(char data)
 			if (sscanf(_message, "$%x,%lx", &tag, &value) == 2) {
 				switch (tag) {
 				case TAG_PDU_CONTROL:
-					Serial.print("TAG_PDU_CONTROL ");
-					Serial.println(value, HEX);
 					_pduControl = value;
+					Serial.print(F("TAG_PDU_CONTROL "));
+					Serial.println(_pduControl, HEX);
 					setPdu();
 					break;
 				case TAG_RPI_SLEEP_TIME:
-					Serial.print("TAG_RPI_SLEEP_TIME ");
-					Serial.println(value);
 					_rpiSleepTime = (uint8_t)value;
+					Serial.print(F("TAG_RPI_SLEEP_TIME "));
+					Serial.println(_rpiSleepTime);
 					break;
 				case TAG_SPI_SLEEP_TIME:
-					Serial.print("TAG_SPI_SLEEP_TIME ");
-					Serial.println(value);
 					_spiSleepTime = (uint8_t)value;
+					Serial.print(F("TAG_SPI_SLEEP_TIME "));
+					Serial.println(_spiSleepTime);
 					break;
 				case TAG_SPI_SYSTEM_TIME:
-					Serial.print("TAG_SPI_SYSTEM_TIME ");
-					Serial.println(value);
 					_systemTime = value;
+					Serial.print(F("TAG_SPI_SYSTEM_TIME "));
+					Serial.println(_systemTime);
 					break;
 				}
 			}
@@ -275,32 +298,43 @@ void MainTask::readSolarCharger()
 {
 	SolarChargerData& solarChargerData = nextSolarChargerDataWrite();
 	_solarCharger.connect();
+	solarChargerData.energyYieldToday = _solarCharger.getEnergyYieldToday();
+	solarChargerData.panelPower = _solarCharger.getPanelPower();
+	HistoryDayRecord* historyDayRecord = _solarCharger.getHistoryDayRecordy(0);
+	if (historyDayRecord)
+		solarChargerData.consumedToday = historyDayRecord->getConsumed();
+	historyDayRecord = _solarCharger.getHistoryDayRecordy(1);
+	if (historyDayRecord)
+		solarChargerData.consumedYesterday = historyDayRecord->getConsumed();
 	solarChargerData.chargerVoltage = _solarCharger.getChargerVoltage();
 	solarChargerData.chargerCurrent = _solarCharger.getChargerCurrent();
-	solarChargerData.chargerPowerToday = _solarCharger.getPowerYieldToday();
-	solarChargerData.chargerMaxPowerToday = _solarCharger.getMaxPowerToday();
 	solarChargerData.loadCurrent = _solarCharger.getLoadCurrent();
 	solarChargerData.panelVoltage = _solarCharger.getPanelVoltage();
-	solarChargerData.panelPower = _solarCharger.getPanelPower();
+	solarChargerData.deviceState = _solarCharger.getDeviceState();
 	solarChargerData.time = _systemTime;
 	solarChargerData.cpuTemperature = getCpuTemperature();
 	_solarCharger.disconnect();
-	Serial.print("panelVoltage ");
-	Serial.println(solarChargerData.panelVoltage);
-	Serial.print("panelPower ");
+	Serial.println();
+	Serial.print(F("energyYieldToday "));
+	Serial.println(solarChargerData.energyYieldToday);
+	Serial.print(F("panelPower "));
 	Serial.println(solarChargerData.panelPower);
-	Serial.print("chargerVoltage ");
+	Serial.print(F("consumedToday "));
+	Serial.println(solarChargerData.consumedToday);
+	Serial.print(F("consumedYesterday "));
+	Serial.println(solarChargerData.consumedYesterday);
+	Serial.print(F("chargerVoltage "));
 	Serial.println(solarChargerData.chargerVoltage);
-	Serial.print("chargerCurrent ");
+	Serial.print(F("chargerCurrent "));
 	Serial.println(solarChargerData.chargerCurrent);
-	Serial.print("chargerPowerToday ");
-	Serial.println(solarChargerData.chargerPowerToday);
-	Serial.print("chargerMaxPowerToday ");
-	Serial.println(solarChargerData.chargerMaxPowerToday);
-	Serial.print("loadCurrent ");
+	Serial.print(F("loadCurrent "));
 	Serial.println(solarChargerData.loadCurrent);
-	Serial.print("cpuTemperature ");
+	Serial.print(F("panelVoltage "));
+	Serial.println(solarChargerData.panelVoltage);
+	Serial.print(F("cpuTemperature "));
 	Serial.println(solarChargerData.cpuTemperature);
+	Serial.print(F("Device state "));
+	Serial.println(solarChargerData.deviceState);
 }
 
 MainTask::SolarChargerData& MainTask::nextSolarChargerDataWrite()
