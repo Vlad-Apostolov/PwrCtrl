@@ -94,7 +94,8 @@ private:
 	static void rtcInterrupt();
 	static void i2cReceiver(int received);
 	static void i2cTransmitter();
-	void powerDownPi(bool state);
+	void powerUpPi();
+	void powerDownPi();
 	void parseMessage(char data);
 	void setPdu();
 	char asciiToInt(unsigned char data);

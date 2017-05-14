@@ -12,10 +12,13 @@
 
 extern unsigned char wdtInterrupt;
 
+#define SYSMON_IS_RUNNING	7	// PD7 - Handshake to show that the SysMon is running - Active High
+
 MainTask& MainTask::instance()
 {
 	static MainTask *inst = NULL;
 	if (!inst) {
+		pinMode(SYSMON_IS_RUNNING, INPUT);
 		Serial.begin(19200);
 		Serial.println();
 		Serial.println(F("MainTask started"));
@@ -40,9 +43,9 @@ void MainTask::run()
 	Serial.println(F("Wait 40 seconds for the router to boot up and connect"));
 	delay(40000);
 	Serial.println(F("Power up RPi to get the configuration from the web"));
-	powerDownPi(false);
+	powerUpPi();
 	Serial.println(F("Wait for RPi to finish its work"));
-	powerDownPi(true);
+	powerDownPi();
 	initRtc();
 	for (;;) {
 		if (_rtcInterrupt || _wdtInterrupt) {
@@ -65,8 +68,8 @@ void MainTask::run()
 				readSolarCharger();
 			}
 			if (_upTime%_rpiSleepTime == 0) {
-				powerDownPi(false);
-				powerDownPi(true);
+				powerUpPi();
+				powerDownPi();
 			}
 		} else if (wdtInterrupt) {
 			// watchdog timer interrupt
@@ -144,41 +147,61 @@ void MainTask::i2cTransmitter()
 	Wire.write((uint8_t*)solarChargerData, sizeof(SolarChargerData));
 }
 
-void MainTask::powerDownPi(bool state)
+void MainTask::powerUpPi()
 {
+	Serial.println(F("Power up RPi"));
+	_sleepyPi.enablePiPower(true);
+	Serial.print(F("Waiting for RPi to power up at RPi current threshold "));
+	Serial.print(RPI_POWER_UP_CURRENT);
+	Serial.println(F(" mA"));
 	uint16_t current;
+	unsigned long powerUpTimeout = millis();
+#define POWER_UP_TIMEOUT	60000	// one minute
+	do {
+		current = _sleepyPi.rpiCurrent();
+		Serial.print(F("RPi current: "));
+		Serial.print(current);
+		Serial.println(F("mA"));
+		Serial.flush();
+		delay(1000);
+		if (digitalRead(SYSMON_IS_RUNNING))
+			powerUpTimeout = millis();
+		else if ((millis() - powerUpTimeout) > POWER_UP_TIMEOUT) {
+			Serial.print(F("RPi didn't power up! Cycle RPi power and try again."));
+			_sleepyPi.enablePiPower(false);
+			delay(2000);
+			_sleepyPi.enablePiPower(true);
+			powerUpTimeout = millis();
+		}
+	} while (current < RPI_POWER_UP_CURRENT);
+}
 
-	if (state) {
-		Serial.print(F("Waiting for RPi to shutdown at RPi current threshold "));
-		Serial.print(_rpiShutdownCurrent);
-		Serial.println(F(" mA"));
-		do {
-			current = _sleepyPi.rpiCurrent();
-			Serial.print(F("RPi current: "));
-			Serial.print(current);
-			Serial.println(F("mA"));
-			Serial.flush();
-			delay(1000);
-		} while (current >= _rpiShutdownCurrent);
+void MainTask::powerDownPi()
+{
+	Serial.print(F("Waiting for RPi to shutdown at RPi current threshold "));
+	Serial.print(_rpiShutdownCurrent);
+	Serial.println(F(" mA"));
+	uint16_t current;
+	unsigned long powerUpTimeout = millis();
+#define POWER_DOWN_TIMEOUT	60000	// one minute
+	do {
+		current = _sleepyPi.rpiCurrent();
+		Serial.print(F("RPi current: "));
+		Serial.print(current);
+		Serial.println(F("mA"));
+		Serial.flush();
+		delay(1000);
+		if (digitalRead(SYSMON_IS_RUNNING))
+			powerUpTimeout = millis();
+		else if ((millis() - powerUpTimeout) > POWER_UP_TIMEOUT) {
+			Serial.print(F("RPi didn't power down! Force power down."));
+			break;
+		}
+	} while (current >= _rpiShutdownCurrent);
 
-		Serial.println(F("Power down RPi"));
-		_sleepyPi.enablePiPower(false);
-		delay(5000);		// make sure RPi loses the power before next power up
-	} else {
-		Serial.println(F("Power up RPi"));
-		_sleepyPi.enablePiPower(true);
-		Serial.print(F("Waiting for RPi to power up at RPi current threshold "));
-		Serial.print(RPI_POWER_UP_CURRENT);
-		Serial.println(F(" mA"));
-		do {
-			current = _sleepyPi.rpiCurrent();
-			Serial.print(F("RPi current: "));
-			Serial.print(current);
-			Serial.println(F("mA"));
-			Serial.flush();
-			delay(1000);
-		} while (current < RPI_POWER_UP_CURRENT);
-	}
+	Serial.println(F("Power down RPi"));
+	_sleepyPi.enablePiPower(false);
+	delay(5000);		// make sure RPi loses the power before next power up
 }
 
 void MainTask::parseMessage(char data)
