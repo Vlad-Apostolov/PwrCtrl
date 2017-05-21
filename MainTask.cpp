@@ -167,7 +167,7 @@ void MainTask::powerUpPi()
 		if (digitalRead(SYSMON_IS_RUNNING))
 			powerUpTimeout = millis();
 		else if ((millis() - powerUpTimeout) > POWER_UP_TIMEOUT) {
-			Serial.print(F("RPi didn't power up! Cycle RPi power and try again."));
+			Serial.println(F("RPi didn't power up! Cycle RPi power and try again."));
 			_sleepyPi.enablePiPower(false);
 			delay(2000);
 			_sleepyPi.enablePiPower(true);

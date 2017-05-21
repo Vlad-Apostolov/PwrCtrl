@@ -1,1 +1,1 @@
-/bin/sh /usr/share/arduino/hardware/tools/avrdude -C/usr/share/arduino/hardware/tools/avrdude.conf -v -v -v -v -patmega328p -carduino -P/dev/ttyS0 -b57600 -D -Uflash:w:/home/pi/projects/NeXT/PwrCtrl/binary/PwrCtrl.cpp.hex:i
+/bin/sh /usr/share/arduino/hardware/tools/avrdude -C/usr/share/arduino/hardware/tools/avrdude.conf -v -v -v -v -patmega328p -carduino -P/dev/ttyS0 -b57600 -D -Uflash:w:/home/pi/SiteSpy/PwrCtrl.ino.hex:i
