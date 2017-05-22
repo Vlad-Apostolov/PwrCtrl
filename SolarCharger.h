@@ -15,7 +15,7 @@
 class SolarCharger {
 public:
 #define INVALID_DATA			0xFF
-#define INVALID_RESULT			0xFFFF
+#define INVALID_RESULT			0
 	SolarCharger(uint8_t rxPin, uint8_t txPin) :
 			_comPort(rxPin, txPin),
 			_commandState(CMD_HEADER),

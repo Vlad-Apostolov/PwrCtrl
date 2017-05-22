@@ -303,9 +303,13 @@ void MainTask::readSolarCharger()
 	HistoryDayRecord* historyDayRecord = _solarCharger.getHistoryDayRecordy(0);
 	if (historyDayRecord)
 		solarChargerData.consumedToday = historyDayRecord->getConsumed();
+	else
+		solarChargerData.consumedToday = 0;
 	historyDayRecord = _solarCharger.getHistoryDayRecordy(1);
 	if (historyDayRecord)
 		solarChargerData.consumedYesterday = historyDayRecord->getConsumed();
+	else
+		solarChargerData.consumedYesterday = 0;
 	solarChargerData.chargerVoltage = _solarCharger.getChargerVoltage();
 	solarChargerData.chargerCurrent = _solarCharger.getChargerCurrent();
 	solarChargerData.loadCurrent = _solarCharger.getLoadCurrent();
