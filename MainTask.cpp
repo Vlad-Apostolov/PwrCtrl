@@ -156,7 +156,7 @@ void MainTask::powerUpPi()
 	Serial.println(F(" mA"));
 	uint16_t current;
 	unsigned long powerUpTimeout = millis();
-#define POWER_UP_TIMEOUT	60000	// one minute
+#define POWER_UP_TIMEOUT	3*60000	// 3 minutes
 	do {
 		current = _sleepyPi.rpiCurrent();
 		Serial.print(F("RPi current: "));
@@ -183,7 +183,7 @@ void MainTask::powerDownPi()
 	Serial.println(F(" mA"));
 	uint16_t current;
 	unsigned long powerUpTimeout = millis();
-#define POWER_DOWN_TIMEOUT	60000	// one minute
+#define POWER_DOWN_TIMEOUT	3*60000	// 3 minutes
 	do {
 		current = _sleepyPi.rpiCurrent();
 		Serial.print(F("RPi current: "));
