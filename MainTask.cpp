@@ -91,7 +91,7 @@ void MainTask::run()
 		}
 		Serial.flush();
 		_sleepyPi.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
-		delay(3);	// this is needed for the I2C slave to work in sleep mode
+		delay(30);	// this is needed for the I2C slave to work in sleep mode
 	}
 }
 
